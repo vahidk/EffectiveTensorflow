@@ -1,0 +1,9 @@
+This is a list of topics that we intend to cover in this series.
+
+- Building a framework on top of tf.estimator API
+- Scopes and how to avoid them
+- Running across multiple GPUs 
+- Advanced visualization with python ops
+- Understanding control dependencies
+- Tensor arrays and when to use them
+- Control flow operations
