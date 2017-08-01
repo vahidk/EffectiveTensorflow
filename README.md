@@ -132,9 +132,9 @@ d = tf.nn.relu(pa + pb)
 In fact this piece of code is pretty general and can be applied to tensors of arbitrary shape as long as broadcasting between tensors is possible:
 
 ```python
-def tile_concat_dense(a, b, activation=tf.nn.relu):
-    pa = tf.layers.dense(a, 10, activation=None)
-    pb = tf.layers.dense(b, 10, activation=None)
+def tile_concat_dense(a, b, units, activation=tf.nn.relu):
+    pa = tf.layers.dense(a, units, activation=None)
+    pb = tf.layers.dense(b, units, activation=None)
     c = pa + pb
     if activation is not None:
         c = activation(c)
