@@ -44,7 +44,7 @@ Since both the inputs have a fully defined shape, tensorflow is able to infer th
 __Tip__: When using jupyter notebook make sure to call tf.reset_default_graph() at the beginning to clear the symbolic graph before defining new nodes.
 ***
 
-To understand how powerful symbolic computation can be let's have a look at another example. Assume that we have samples from a curve (say f(x) = 5x^2 + 3) and we want to estimate f(x) without knowing its parameters. One way to approximate f(x) is to use gradient descent algorithm. We define a parameteric function g(x, w) = w0 x^2 + w1 x + w2, which is a function of the input x and latent paramters w, our goal is then to find the latent parameters such that g(x, w) ≈ f(x). This can be done by minimizing the following loss function: L(w) = (f(x) - g(x, w))^2. Although there's a closed form solution for this simple problem, we opt to use a more general approach that can be applied to any arbitrary differentiable function, and that is using stochastic gradient descent. We simply compute the average gradient of L(w) with respect to w over a set of sample points and move at the opposite direction. 
+To understand how powerful symbolic computation can be let's have a look at another example. Assume that we have samples from a curve (say f(x) = 5x^2 + 3) and we want to estimate f(x) without knowing its parameters. We define a parameteric function g(x, w) = w0 x^2 + w1 x + w2, which is a function of the input x and latent paramters w, our goal is then to find the latent parameters such that g(x, w) ≈ f(x). This can be done by minimizing the following loss function: L(w) = (f(x) - g(x, w))^2. Although there's a closed form solution for this simple problem, we opt to use a more general approach that can be applied to any arbitrary differentiable function, and that is using stochastic gradient descent. We simply compute the average gradient of L(w) with respect to w over a set of sample points and move in the opposite direction. 
 
 Here's how it can be done in Tensorflow:
 
@@ -112,8 +112,8 @@ c = a + b
 Broadcasting allows us to perform implicit tiling which makes the code shorter, and more memory efficient, since we don’t need to store the result of the tiling operation. One neat place that this can be used is when combining features of different length. In order to concatenate features of different length we commonly tile the input tensors, concatenate the result and apply some nonlinearity. This is a common pattern across a variety of neural network architectures:
 
 ```python
-a = tf.get_variable([5, 3, 5])
-b = tf.get_variable([5, 1, 6])
+a = tf.random_uniform([5, 3, 5])
+b = tf.random_uniform([5, 1, 6])
 
 # concat a and b and apply nonlinearity
 tiled_b = tf.tile(b, [1, 3, 1])
@@ -141,7 +141,7 @@ def tile_concat_dense(a, b, activation=tf.nn.relu):
     return c
 ```
 
-So far we discussed the good part of broadcasting. But what’s the ugly part you may ask? Implicit assumptions make debugging hard to do. Consider the following example:
+So far we discussed the good part of broadcasting. But what’s the ugly part you may ask? Implicit assumptions almost always make debugging harder to do. Consider the following example:
 
 ```python
 a = tf.constant([[1.], [2.]])
@@ -149,7 +149,7 @@ b = tf.constant([1., 2.])
 c = tf.reduce_sum(a + b)
 ```
 
-What do you think would the value of c would after evaluation? If you guessed 6, that’s wrong. It’s going to be 12. This is because when rank of two tensors don’t match, Tensorflow automatically expands the first dimension before the elementwise operation, so the result of addition would be [[2, 3], [3, 4]], and the reducing over all parameters would give us 12.
+What do you think would the value of c would after evaluation? If you guessed 6, that’s wrong. It’s going to be 12. This is because when rank of two tensors don’t match, Tensorflow automatically expands the first dimension of the tensor with lower rank before the elementwise operation, so the result of addition would be [[2, 3], [3, 4]], and the reducing over all parameters would give us 12.
 
 The way to avoid this problem is to be as explicit as possible. Had we specified which dimension we would want to reduce across, catching this bug would have been much easier:
 
@@ -159,4 +159,4 @@ b = tf.constant([1., 2.])
 c = tf.reduce_sum(a + b, 0)
 ```
 
-Here the value of c would be [5, 7], and we immediately would guess based on the shape of the result that there’s something wrong.
+Here the value of c would be [5, 7], and we immediately would guess based on the shape of the result that there’s something wrong. A general rule of thumb is to always specify the dimensions in reduction operations and when using tf.squeeze.
