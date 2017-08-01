@@ -88,7 +88,7 @@ for _ in range(1000):
     print(loss_val)
 print(sess.run([w]))
 ```
-By running this piece of code you should see a number close to this:
+By running this piece of code you should see a result close to this:
 ```
 [4.9924135, 0.00040895029, 3.4504161]
 ```
