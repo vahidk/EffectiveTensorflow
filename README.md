@@ -5,6 +5,7 @@ Table of Contents
 1. [Tensorflow Basics](#basics)
 2. [Understanding static and dynamic shapes](#shapes)
 3. [Broadcasting the good and the ugly](#broadcast)
+4. [Prototyping kernels and advanced visualization with Python ops](#python_ops)
 
 ## Tensorflow Basics
 <a name="basics"></a>
@@ -103,6 +104,8 @@ For simplicity in most of the examples here we manually create sessions and we d
 <a name="shapes"></a>
 Tensors in Tensorflow have a static shape attribute which is determined during graph construction. The static shape may be underspecified. For example we might define a tensor of shape [None, 128]:
 ```python
+import tensorflow as tf
+
 a = tf.placeholder([None, 128])
 ```
 This means that the first dimension can be of any size and will be determined dynamically during Session.run. Tensorflow has a rather ugly API for exposing the static shape:
@@ -173,6 +176,8 @@ b = tf.reshape(b, [0, [1, 2]])
 Tensorflow supports broadcasting elementwise operations. Normally when you want to perform operations like addition and multiplication, you need to make sure that shapes of the operands match, e.g. you can’t add a tensor of shape [3, 2] to a tensor of shape [3, 4]. But there’s a special case and that’s when you have a singular dimension. Tensorflow implicitly tiles the tensor across its singular dimensions to match the shape of the other operand. So it’s valid to add a tensor of shape [3, 2] to a tensor of shape [3, 1]
 
 ```python
+import tensorflow as tf
+
 a = tf.constant([[1., 2.], [3., 4.]])
 b = tf.constant([[1.], [2.]])
 # c = a + tf.tile(a, [1, 2])
@@ -230,3 +235,100 @@ c = tf.reduce_sum(a + b, 0)
 ```
 
 Here the value of c would be [5, 7], and we immediately would guess based on the shape of the result that there’s something wrong. A general rule of thumb is to always specify the dimensions in reduction operations and when using tf.squeeze.
+
+## Prototyping kernels and advanced visualization with Python ops
+<a name="python_ops"></a>
+Operation kernels in Tensorflow are entirely written in C++ for efficiency. But writing a Tensorflow kernel in C++ can be quite a pain. So, before spending hours implementing your kernel you may want to prototype something quickly, however inefficient. With tf.py_func() you can turn any piece of python code to a Tensorflow operation.
+
+For example this is how you can implement a simple ReLU nonlinearity kernel in Tensorflow as a python op:
+```python
+import numpy as np
+import tensorflow as tf
+import uuid
+
+def relu(inputs):
+    # Define the op in python
+    def _relu(x):
+        return np.maximum(x, 0.)
+    
+    # Define the op's gradient in python
+    def _relu_grad(x):
+        return np.float32(x > 0)
+
+    # An adapter that defines a gradient op compatible with Tensorflow
+    def _relu_grad_op(op, grad):
+        x = op.inputs[0]
+        x_grad = grad * tf.py_func(_relu_grad, [x], tf.float32)
+        return x_grad
+    
+    # Register the gradient with a unique id
+    grad_name = "MyReluGrad_" + str(uuid.uuid4())
+    tf.RegisterGradient(grad_name)(_relu_grad_op)
+
+    # Override the gradient of the custom op
+    g = tf.get_default_graph()
+    with g.gradient_override_map({"PyFunc": grad_name}):
+        output = tf.py_func(_relu, [inputs], tf.float32)
+    return output
+```
+
+To verify that the gradients are correct you can use Tensorflow's gradient checker:
+```python
+x = tf.random_normal([10])
+y = relu(x * x)
+
+with tf.Session():
+    diff = tf.test.compute_gradient_error(x, [10], y, [10])
+    print(diff)
+```
+compute_gradient_error() computes the gradient numerically and returns the difference between the provided gradient. What we want is a very low difference.
+
+Note that this implementation is pretty inefficient, and is only useful for prototyping, since the python code is not parallelizable and won't run on GPU. Once you verified your idea, you definitely would want to write it as a C++ kernel.
+
+In practice we commonly use python ops to do visualization on Tensorboard. Consider the case that you are building an image classification model and want to visualize your model predictions during training. Tensorflow allows visualizing images with tf.summary.image() function:
+```python
+image = tf.placeholder(tf.float32)
+tf.summary.image("image", image)
+```
+But this only visualizes the input image. In order to visualize the predictions you have to find a way to annotated the image which may be almost impossible to do in Tensorflow. An easier way to do this is to do the drawing in python, and wrap it in a python op:
+```python
+import io
+import matplotlib.pyplot as plt
+import numpy as np
+import PIL
+import tensorflow as tf
+
+def visualize_labeled_images(images, labels, max_outputs=3, name='image'):
+    def _visualize_image(image, label):
+        # Do the actual drawing in python
+        fig = plt.figure(figsize=(3, 3), dpi=80)
+        ax = fig.add_subplot(111)
+        ax.imshow(image[::-1,...])
+        ax.text(0, 0, str(label), 
+          horizontalalignment='left', 
+          verticalalignment='top')
+        fig.canvas.draw()
+
+        # Write the plot as a memory file.
+        buf = io.BytesIO()
+        data = fig.savefig(buf, format='png')
+        buf.seek(0)
+        
+        # Read the image and convert to numpy array
+        img = PIL.Image.open(buf)
+        return np.array(img.getdata()).reshape(img.size[0], img.size[1], -1)
+
+    def _visualize_images(images, labels):
+        # Only display the given number of examples in the batch
+        outputs = []
+        for i in range(max_outputs):
+            output = _visualize_image(images[i], labels[i])
+            outputs.append(output)
+        return np.array(outputs, dtype=np.uint8)
+
+    # Run the python op.
+    figs = tf.py_func(_visualize_images, [images, labels], tf.uint8)
+    return tf.summary.image(name, figs)
+```
+
+Note that since summaries are usually only evaluated once in a while (not per step), this implementation may be used in practice without worrying about efficiency.
