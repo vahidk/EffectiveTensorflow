@@ -3,6 +3,7 @@
 Table of Contents
 =================
 1. [Tensorflow Basics](#basics)
+2. [Understanding static and dynamic shapes](#shapes)
 3. [Broadcasting the good and the ugly](#broadcast)
 
 ## Tensorflow Basics
@@ -38,13 +39,13 @@ the output variable z, tensorflow only gives us a handle (of type Tensor) to a n
 ```
 Tensor("MatMul:0", shape=(10, 10), dtype=float32)
 ```
-Since both the inputs have a fully defined shape, tensorflow is able to infer the shape of the tensor as well as its type. In order to compute the value of the tensor we need to create a session and evaluate it using Session.Run method.
+Since both the inputs have a fully defined shape, tensorflow is able to infer the shape of the tensor as well as its type. In order to compute the value of the tensor we need to create a session and evaluate it using Session.run method.
 
 ***
-__Tip__: When using jupyter notebook make sure to call tf.reset_default_graph() at the beginning to clear the symbolic graph before defining new nodes.
+__Tip__: When using Jupyter notebook make sure to call tf.reset_default_graph() at the beginning to clear the symbolic graph before defining new nodes.
 ***
 
-To understand how powerful symbolic computation can be let's have a look at another example. Assume that we have samples from a curve (say f(x) = 5x^2 + 3) and we want to estimate f(x) without knowing its parameters. We define a parameteric function g(x, w) = w0 x^2 + w1 x + w2, which is a function of the input x and latent paramters w, our goal is then to find the latent parameters such that g(x, w) ≈ f(x). This can be done by minimizing the following loss function: L(w) = (f(x) - g(x, w))^2. Although there's a closed form solution for this simple problem, we opt to use a more general approach that can be applied to any arbitrary differentiable function, and that is using stochastic gradient descent. We simply compute the average gradient of L(w) with respect to w over a set of sample points and move in the opposite direction. 
+To understand how powerful symbolic computation can be let's have a look at another example. Assume that we have samples from a curve (say f(x) = 5x^2 + 3) and we want to estimate f(x) without knowing its parameters. We define a parametric function g(x, w) = w0 x^2 + w1 x + w2, which is a function of the input x and latent parameters w, our goal is then to find the latent parameters such that g(x, w) ≈ f(x). This can be done by minimizing the following loss function: L(w) = (f(x) - g(x, w))^2. Although there's a closed form solution for this simple problem, we opt to use a more general approach that can be applied to any arbitrary differentiable function, and that is using stochastic gradient descent. We simply compute the average gradient of L(w) with respect to w over a set of sample points and move in the opposite direction. 
 
 Here's how it can be done in Tensorflow:
 
@@ -97,6 +98,74 @@ Which is a relatively close approximation to our parameters.
 This is just tip of the iceberg for what Tensorflow can do. Many problems such a optimizing large neural networks with millions of parameters can be implemented efficiently in Tensorflow in just a few lines of code. Tensorflow takes care of scaling across multiple devices, and threads, and supports a variety of platforms.
 
 For simplicity in most of the examples here we manually create sessions and we don't care about saving and loading checkpoints but this is not how we usually do things in practice. You most probably want to use the estimator API to take care of session management and logging. We provide a simple extendable framework in the code/framework directory for an example of a practical framework for training neural networks using Tensorflow.
+
+## Understanding static and dynamic shapes
+<a name="shapes"></a>
+Tensors in Tensorflow have a static shape attribute which is determined during graph construction. The static shape may be underspecified. For example we might define a tensor of shape [None, 128]:
+```python
+a = tf.placeholder([None, 128])
+```
+This means that the first dimension can be of any size and will be determined dynamically during Session.run. Tensorflow has a rather ugly API for exposing the static shape:
+```python
+static_shape = a.get_shape().as_list()  # returns [None, 128]
+```
+(This used to be a.shape but someone decided it's too convenient.)
+
+To get the dynamic shape of the tensor you can call tf.shape op, which returns a tensor representing the shape of the given tensor:
+```python
+dynamic_shape = tf.shape(a)
+```
+
+The static shape of a tensor can be set with Tensor.set_shape() method:
+```python
+a.set_shape([32, 128])
+```
+Use this function only if you know what you are doing, in practice it's safer to do dynamic reshaping with tf.reshape() op:
+```python
+a =  tf.reshape(a, [32, 128])
+```
+
+It can be convenient to have a function that returns the static shape when available and dynamic shape when it's not. The following utility function does just that:
+```python
+def get_shape(tensor):
+  static_shape = tensor.get_shape().as_list()
+  dynamic_shape = tf.unstack(tf.shape(tensor))
+  dims = [s[1] if s[0] is None else s[0]
+          for s in zip(static_shape, dynamic_shape)]
+  return dims
+```
+
+Now imagine we want to convert a Tensor of rank 3 to a tensor of rank 2 by collapsing the second and third dimensions into one:
+```python
+b = placeholder([None, 10, 32])
+shape = get_shape(tensor)
+b = tf.reshape(b, [shape[0], shape[1] * shape[2]])
+```
+
+In fact we can write a general purpose reshape function to collapse any list of dimensions:
+```python
+import tensorflow as tf
+import numpy as np
+
+def reshape(tensor, dims_list):
+  shape = get_shape(tensor)
+  dims_prod = []
+  for dims in dims_list:
+    if isinstance(dims, int):
+      dims_prod.append(shape[dims])
+    elif all([isinstance(shape[d], int) for d in dims]):
+      dims_prod.append(np.prod([shape[d] for d in dims]))
+    else:
+      dims_prod.append(tf.prod([shape[d] for d in dims]))
+  tensor = tf.reshape(tensor, dims_prod)
+  return tensor
+```
+
+Then collapsing the second dimension becomes very easy:
+```python
+b = placeholder([None, 10, 32])
+b = tf.reshape(b, [0, [1, 2])
+```
 
 ## Broadcasting the good and the ugly
 <a name="broadcast"></a>
