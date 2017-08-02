@@ -165,7 +165,7 @@ def reshape(tensor, dims_list):
 Then collapsing the second dimension becomes very easy:
 ```python
 b = placeholder([None, 10, 32])
-b = tf.reshape(b, [0, [1, 2])
+b = tf.reshape(b, [0, [1, 2]])
 ```
 
 ## Broadcasting the good and the ugly
