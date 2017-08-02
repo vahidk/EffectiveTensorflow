@@ -290,7 +290,7 @@ In practice we commonly use python ops to do visualization on Tensorboard. Consi
 image = tf.placeholder(tf.float32)
 tf.summary.image("image", image)
 ```
-But this only visualizes the input image. In order to visualize the predictions you have to find a way to annotated the image which may be almost impossible to do in Tensorflow. An easier way to do this is to do the drawing in python, and wrap it in a python op:
+But this only visualizes the input image. In order to visualize the predictions you have to find a way to add annotations to the image which may be almost impossible with existing ops. An easier way to do this is to do the drawing in python, and wrap it in a python op:
 ```python
 import io
 import matplotlib.pyplot as plt
