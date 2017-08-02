@@ -281,7 +281,7 @@ with tf.Session():
     diff = tf.test.compute_gradient_error(x, [10], y, [10])
     print(diff)
 ```
-compute_gradient_error() computes the gradient numerically and returns the difference between the provided gradient. What we want is a very low difference.
+compute_gradient_error() computes the gradient numerically and returns the difference with the provided gradient. What we want is a very low difference.
 
 Note that this implementation is pretty inefficient, and is only useful for prototyping, since the python code is not parallelizable and won't run on GPU. Once you verified your idea, you definitely would want to write it as a C++ kernel.
 
