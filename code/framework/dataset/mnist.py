@@ -124,7 +124,7 @@ def _visulize_data(split=tf.estimator.ModeKeys.TRAIN):
 
 if __name__ == '__main__':
   if len(sys.argv) != 2:
-    print('Usage: python helen.py <convert|visualize>')
+    print('Usage: python dataset.mnist <convert|visualize>')
     sys.exit(1)
 
   if sys.argv[1] == 'convert':
