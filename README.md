@@ -239,7 +239,7 @@ Here the value of c would be [5, 7], and we immediately would guess based on the
 
 ## Understanding order of execution and control dependencies
 <a name="control_deps"></a>
-As we discussed in the first item, Tensorflow doesn't immediately run the operations that are defined but rather creates corresponding nodes in a graph that can be evaluated with Session.run() method. This also enables Tensorflow to do optimizations at run time to determine the optimal order of execution and possible trimming of unused nodes. This is quite to understand when we are dealing with tf.Tensors but dealing with tf.Variables aren't that straightforward. My advice to is to only use Variables if Tensors don't do the job. This might not make a lot of sense to you now, so let's start with an example.
+As we discussed in the first item, Tensorflow doesn't immediately run the operations that are defined but rather creates corresponding nodes in a graph that can be evaluated with Session.run() method. This also enables Tensorflow to do optimizations at run time to determine the optimal order of execution and possible trimming of unused nodes. If you only have tf.Tensors in your graph you don't need to worry about dependencies but you most probably have tf.Variables too, and tf.Variables make things much more difficult. My advice to is to only use Variables if Tensors don't do the job. This might not make a lot of sense to you now, so let's start with an example.
 
 ```python
 import tensorflow as tf
