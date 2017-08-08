@@ -5,7 +5,8 @@ Table of Contents
 1. [Tensorflow Basics](#basics)
 2. [Understanding static and dynamic shapes](#shapes)
 3. [Broadcasting the good and the ugly](#broadcast)
-4. [Prototyping kernels and advanced visualization with Python ops](#python_ops)
+4. [Understanding order of execution and control dependencies](#control_deps)
+5. [Prototyping kernels and advanced visualization with Python ops](#python_ops)
 
 ## Tensorflow Basics
 <a name="basics"></a>
@@ -40,13 +41,13 @@ the output variable z, tensorflow only gives us a handle (of type Tensor) to a n
 ```
 Tensor("MatMul:0", shape=(10, 10), dtype=float32)
 ```
-Since both the inputs have a fully defined shape, tensorflow is able to infer the shape of the tensor as well as its type. In order to compute the value of the tensor we need to create a session and evaluate it using Session.run method.
+Since both the inputs have a fully defined shape, tensorflow is able to infer the shape of the tensor as well as its type. In order to compute the value of the tensor we need to create a session and evaluate it using Session.run() method.
 
 ***
 __Tip__: When using Jupyter notebook make sure to call tf.reset_default_graph() at the beginning to clear the symbolic graph before defining new nodes.
 ***
 
-To understand how powerful symbolic computation can be let's have a look at another example. Assume that we have samples from a curve (say f(x) = 5x^2 + 3) and we want to estimate f(x) without knowing its parameters. We define a parametric function g(x, w) = w0 x^2 + w1 x + w2, which is a function of the input x and latent parameters w, our goal is then to find the latent parameters such that g(x, w) ≈ f(x). This can be done by minimizing the following loss function: L(w) = (f(x) - g(x, w))^2. Although there's a closed form solution for this simple problem, we opt to use a more general approach that can be applied to any arbitrary differentiable function, and that is using stochastic gradient descent. We simply compute the average gradient of L(w) with respect to w over a set of sample points and move in the opposite direction. 
+To understand how powerful symbolic computation can be let's have a look at another example. Assume that we have samples from a curve (say f(x) = 5x^2 + 3) and we want to estimate f(x) without knowing its parameters. We define a parametric function g(x, w) = w0 x^2 + w1 x + w2, which is a function of the input x and latent parameters w, our goal is then to find the latent parameters such that g(x, w) ≈ f(x). This can be done by minimizing the following loss function: L(w) = (f(x) - g(x, w))^2. Although there's a closed form solution for this simple problem, we opt to use a more general approach that can be applied to any arbitrary differentiable function, and that is using stochastic gradient descent. We simply compute the average gradient of L(w) with respect to w over a set of sample points and move in the opposite direction.
 
 Here's how it can be done in Tensorflow:
 
@@ -69,7 +70,7 @@ f = tf.stack([tf.square(x), x, tf.ones_like(x)], 1)
 yhat = tf.squeeze(tf.matmul(f, w), 1)
 
 # The loss is defined to be the l2 distance between our estimate of y and its
-# true value. We also added a shrinkage term, tp ensure the resulting weights 
+# true value. We also added a shrinkage term, tp ensure the resulting weights
 # would be small.
 loss = tf.nn.l2_loss(yhat - y) + 0.1 * tf.nn.l2_loss(w)
 
@@ -94,7 +95,7 @@ By running this piece of code you should see a result close to this:
 ```
 [4.9924135, 0.00040895029, 3.4504161]
 ```
-Which is a relatively close approximation to our parameters. 
+Which is a relatively close approximation to our parameters.
 
 This is just tip of the iceberg for what Tensorflow can do. Many problems such a optimizing large neural networks with millions of parameters can be implemented efficiently in Tensorflow in just a few lines of code. Tensorflow takes care of scaling across multiple devices, and threads, and supports a variety of platforms.
 
@@ -108,7 +109,7 @@ import tensorflow as tf
 
 a = tf.placeholder([None, 128])
 ```
-This means that the first dimension can be of any size and will be determined dynamically during Session.run. Tensorflow has a rather ugly API for exposing the static shape:
+This means that the first dimension can be of any size and will be determined dynamically during Session.run(). Tensorflow has a rather ugly API for exposing the static shape:
 ```python
 static_shape = a.get_shape().as_list()  # returns [None, 128]
 ```
@@ -181,7 +182,7 @@ import tensorflow as tf
 a = tf.constant([[1., 2.], [3., 4.]])
 b = tf.constant([[1.], [2.]])
 # c = a + tf.tile(a, [1, 2])
-c = a + b 
+c = a + b
 ```
 
 Broadcasting allows us to perform implicit tiling which makes the code shorter, and more memory efficient, since we don’t need to store the result of the tiling operation. One neat place that this can be used is when combining features of different length. In order to concatenate features of different length we commonly tile the input tensors, concatenate the result and apply some nonlinearity. This is a common pattern across a variety of neural network architectures:
@@ -236,6 +237,74 @@ c = tf.reduce_sum(a + b, 0)
 
 Here the value of c would be [5, 7], and we immediately would guess based on the shape of the result that there’s something wrong. A general rule of thumb is to always specify the dimensions in reduction operations and when using tf.squeeze.
 
+## Understanding order of execution and control dependencies
+<a name="control_deps"></a>
+As we discussed in the first item, Tensorflow doesn't immediately run the operations that are defined but rather creates corresponding nodes in a graph that can be evaluated with Session.run() method. This also enables Tensorflow to do optimizations at run time to determine the optimal order of execution and possible trimming of unused nodes. This is quite to understand when we are dealing with tf.Tensors but dealing with tf.Variables aren't that straightforward. My advice to is to only use Variables if Tensors don't do the job. This might not make a lot of sense to you now, so let's start with an example.
+
+```python
+import tensorflow as tf
+
+a = tf.constant(1)
+b = tf.constant(2)
+a = a + b
+
+tf.Session().run(a)
+```
+
+Evaluating "a" will return the value 3 as expected.  Note that here we are creating 3 tensors, two constant tensors and another tensor that stores the result of the addition. Note that you can't overwrite the value of a tensor. If you want to modify it you have to create a new tensor. As we did here.
+
+***
+__TIP__: If you don't define a new graph, Tensorflow automatically creates a graph for you by default. You can use tf.get_default_graph() to get a handle to the graph. You can then inspect the graph, for example by printing all its tensors:
+```python
+print(tf.contrib.graph_editor.get_tensors(tf.get_default_graph()))
+```
+***
+
+Unlike tensors, variables can be updated. So let's see how we may use variables to do the same thing:
+```python
+a = tf.Variable(1)
+b = tf.constant(2)
+assign = tf.assign(a, a + b)
+
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
+print(sess.run(assign))
+```
+Again, we get 3 as expected. Note that tf.assign returns a tensor representing the value of the assignment.
+So far everything seemed to be fine, but let's look at a slightly more complicated example:
+
+```python
+a = tf.Variable(1)
+b = tf.constant(2)
+c = a + b
+
+inc = tf.assign(a, 5)
+
+sess = tf.Session()
+for i in range(10):
+    sess.run(tf.global_variables_initializer())
+    print(sess.run([inc, c]))
+```
+Note that the tensor c here won't have a deterministic value. This value might be 3 or 7 depending on whether addition or assignment gets executed first.
+
+You should note that the order that you define ops in your code doesn't matter to Tensorflow runtime. The only thing that matters is the control dependencies. Control dependencies for tensors are straightforward. Every time you use a tensor in an operation that op will define an implicit dependency to that tensor. But things get complicated with variables because they can take many values.
+
+When dealing with variables, you may need to explicitly define dependencies using tf.control_dependencies() as follows:
+```python
+a = tf.Variable(1)
+b = tf.constant(2)
+c = a + b
+
+with tf.control_dependencies([c]):
+    inc = tf.assign(a, 5)
+
+sess = tf.Session()
+for i in range(10):
+    sess.run(tf.global_variables_initializer())
+    print(sess.run([inc, c]))
+```
+This will make sure that the assign op will be called after the addition.
+
 ## Prototyping kernels and advanced visualization with Python ops
 <a name="python_ops"></a>
 Operation kernels in Tensorflow are entirely written in C++ for efficiency. But writing a Tensorflow kernel in C++ can be quite a pain. So, before spending hours implementing your kernel you may want to prototype something quickly, however inefficient. With tf.py_func() you can turn any piece of python code to a Tensorflow operation.
@@ -250,7 +319,7 @@ def relu(inputs):
     # Define the op in python
     def _relu(x):
         return np.maximum(x, 0.)
-    
+
     # Define the op's gradient in python
     def _relu_grad(x):
         return np.float32(x > 0)
@@ -260,7 +329,7 @@ def relu(inputs):
         x = op.inputs[0]
         x_grad = grad * tf.py_func(_relu_grad, [x], tf.float32)
         return x_grad
-    
+
     # Register the gradient with a unique id
     grad_name = "MyReluGrad_" + str(uuid.uuid4())
     tf.RegisterGradient(grad_name)(_relu_grad_op)
@@ -304,8 +373,8 @@ def visualize_labeled_images(images, labels, max_outputs=3, name='image'):
         fig = plt.figure(figsize=(3, 3), dpi=80)
         ax = fig.add_subplot(111)
         ax.imshow(image[::-1,...])
-        ax.text(0, 0, str(label), 
-          horizontalalignment='left', 
+        ax.text(0, 0, str(label),
+          horizontalalignment='left',
           verticalalignment='top')
         fig.canvas.draw()
 
@@ -313,7 +382,7 @@ def visualize_labeled_images(images, labels, max_outputs=3, name='image'):
         buf = io.BytesIO()
         data = fig.savefig(buf, format='png')
         buf.seek(0)
-        
+
         # Read the image and convert to numpy array
         img = PIL.Image.open(buf)
         return np.array(img.getdata()).reshape(img.size[0], img.size[1], -1)
