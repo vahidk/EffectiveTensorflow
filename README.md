@@ -6,7 +6,8 @@ Table of Contents
 2. [Understanding static and dynamic shapes](#shapes)
 3. [Broadcasting the good and the ugly](#broadcast)
 4. [Understanding order of execution and control dependencies](#control_deps)
-5. [Prototyping kernels and advanced visualization with Python ops](#python_ops)
+5. [Control flow operations: conditionals and loops](#control_flow)
+6. [Prototyping kernels and advanced visualization with Python ops](#python_ops)
 
 ## Tensorflow Basics
 <a name="basics"></a>
@@ -304,6 +305,99 @@ for i in range(10):
     print(sess.run([inc, c]))
 ```
 This will make sure that the assign op will be called after the addition.
+
+## Control flow operations: conditionals and loops
+<a name="control_flow"></a>
+When building complex models such as recurrent neural networks you may need to control the flow of operations through conditionals and loops. In this section we introduce a number of commonly used control flow ops.
+
+Let's assume you want to decide whether to multiply to or add two given tensors based on a predicate. This can be simply implemented with tf.cond which acts as a python "if" function:
+```python
+a = tf.constant(1)
+b = tf.constant(2)
+
+p = tf.constant(True)
+
+x = tf.cond(p, lambda: a + b, lambda: a * b)
+
+print(tf.Session().run(x))
+```
+Since the predicate is True in this case, the output would be the result of the addition, which is 3.
+
+Most of the times when using Tensorflow you are using large tensors and want to perform operations in batch. A related conditional operation is tf.where, which like tf.cond takes a predicate, but selects the output based on the condition in batch.
+```python
+a = tf.constant([1, 1])
+b = tf.constant([2, 2])
+
+p = tf.constant([True, False])
+
+x = tf.where(p, a + b, a * b)
+
+print(tf.Session().run(x))
+```
+This will return [3, 2].
+
+Another widely used control flow operation is tf.while_loop. It allows building dynamic loops in Tensorflow that operate on sequences of variable length. Let's see how we can generate Fibonacci sequence with tf.while_loops:
+```python
+n = tf.constant(5)
+
+def cond(i, a, b):
+    return i < n
+
+def body(i, a, b):
+    return i + 1, b, a + b
+
+i, a, b = tf.while_loop(cond, body, (2, 1, 1))
+
+print(tf.Session().run(b))
+```
+This will print 5. tf.while_loops takes a condition function, and a loop body function, in addition to initial values for loop variables. These loop variables are then updated by multiple calls to the body function until the condition returns false.
+
+Now imagine we want to keep the whole series of Fibonacci sequence. We may update our body to keep a record of the history of current values:
+```python
+n = tf.constant(5)
+
+def cond(i, a, b, c):
+    return i < n
+
+def body(i, a, b, c):
+    return i + 1, b, a + b, tf.concat([c, [a + b]], 0)
+
+i, a, b, c = tf.while_loop(cond, body, (2, 1, 1, tf.constant([1, 1])))
+
+print(tf.Session().run(c))
+```
+Now if you try running this, Tensorflow will complain that the shape of the the fourth loop variable is changing. So you must make that explicit that it's intentional:
+```
+i, a, b, c = tf.while_loop(
+    cond, body, (2, 1, 1, tf.constant([1, 1])),
+    shape_invariants=(tf.TensorShape([]),
+                      tf.TensorShape([]),
+                      tf.TensorShape([]),
+                      tf.TensorShape([None])))
+```
+This is not only getting ugly, but is also somewhat inefficient. Note that we are building a lot of intermediary tensors that we don't use. Tensorflow has a better solution for this kind of growing arrays. Meet tf.TensorArray. Let's do the same thing this time with tensor arrays:
+```python
+n = tf.constant(5)
+
+c = tf.TensorArray(tf.int32, n)
+c = c.write(0, 1)
+c = c.write(1, 1)
+
+def cond(i, a, b, c):
+    return i < n
+
+def body(i, a, b, c):
+    c = c.write(i, a + b)
+    return i + 1, b, a + b, c
+
+i, a, b, c = tf.while_loop(cond, body, (2, 1, 1, c))
+
+c = c.stack()
+
+print(tf.Session().run(c))
+```
+Tensorflow while loops and tensor arrays are essential tools for building complex recurrent neural networks. As an exercise try writing a [beam search using](https://en.wikipedia.org/wiki/Beam_search) tf.while_loops. Can you make it more efficient with tensor arrays? Here's my [implementation](https://gist.github.com/vahidk/92d15155a5944c9bd9acf4edd9cef613).
+
 
 ## Prototyping kernels and advanced visualization with Python ops
 <a name="python_ops"></a>
