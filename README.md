@@ -8,6 +8,7 @@ Table of Contents
 4. [Understanding order of execution and control dependencies](#control_deps)
 5. [Control flow operations: conditionals and loops](#control_flow)
 6. [Prototyping kernels and advanced visualization with Python ops](#python_ops)
+7. [Multi-GPU processing with data parallelism](#multi_gpu)
 
 ## Tensorflow Basics
 <a name="basics"></a>
@@ -495,3 +496,113 @@ def visualize_labeled_images(images, labels, max_outputs=3, name='image'):
 ```
 
 Note that since summaries are usually only evaluated once in a while (not per step), this implementation may be used in practice without worrying about efficiency.
+
+## Multi-GPU processing with data parallelism
+ <a name="multi_gpu"></a>
+ If you write your software in a language like C++ for a single cpu core, making it run on multiple GPUs in parallel would require rewriting the software from scratch. But this is not the case with Tensorflow. Because of its symbolic nature, tensorflow can hide all that complexity, making it effortless to scale your program across many CPUs and GPUs.
+
+ Let's start with the simple example of adding two vectors on CPU:
+ ```python
+ import tensorflow as tf
+
+with tf.device(tf.DeviceSpec(device_type='CPU', device_index=0)):
+    a = tf.random_uniform([1000, 100])
+    b = tf.random_uniform([1000, 100])
+    c = a + b
+
+tf.Session().run(c)
+ ```
+
+The same thing can as simply be done on GPU:
+```python
+with tf.device(tf.DeviceSpec(device_type='GPU', device_index=0)):
+    a = tf.random_uniform([1000, 100])
+    b = tf.random_uniform([1000, 100])
+    c = a + b
+ ```
+
+But what if we have two GPUs and want to utilize both? To do that, we can split the data and use a separate GPU for processing each half:
+```python
+split_a = tf.split(a, 2)
+split_b = tf.split(b, 2)
+
+split_c = []
+for i in range(2):
+    with tf.device(tf.DeviceSpec(device_type='GPU', device_index=i)):
+        split_c.append(split_a[i] + split_b[i])
+
+c = tf.concat(split_c, axis=0)
+ ```
+
+Let's rewrite this in a more general form so that we can replace addition with any other set of operations:
+```python
+def make_parallel(fn, num_gpus, **kwargs):
+    in_splits = {}
+    for k, v in kwargs.items():
+        in_splits[k] = tf.split(v, num_gpus)
+
+    out_split = []
+    for i in range(num_gpus):
+        with tf.device(tf.DeviceSpec(device_type='GPU', device_index=i)):
+            with tf.variable_scope(tf.get_variable_scope(), reuse=i > 0):
+                out_split.append(fn(**kwargs))
+
+    return tf.concat(out_split, axis=0)
+
+
+def model(a, b):
+    return a + b
+
+c = make_parallel(model, 2, a=a, b=b)
+```
+You can replace the model with any function that takes a set of tensors as input and returns a tensor as result with the condition that both the input and output are in batch. Note that we also added a variable scope and set the reuse to true. This makes sure that we use the same variables for processing both splits. This is something that will become handy in our next example.
+
+Let's look at a slightly more practical example. We want to train a neural network on multiple GPUs. During training we not only need to compute the forward pass but also need to compute the backward pass (the gradients). But how can we parallelize the gradient computation? This turns out to be pretty easy.
+
+Recall from the first item that we wanted to fit a second degree curve to a set of samples. We reorganized the code a bit to have the bulk of the operations in the model function:
+```python
+import numpy as np
+import tensorflow as tf
+
+def model(x, y):
+    w = tf.get_variable("w", shape=[3, 1])
+
+    f = tf.stack([tf.square(x), x, tf.ones_like(x)], 1)
+    yhat = tf.squeeze(tf.matmul(f, w), 1)
+
+    loss = tf.square(yhat - y)
+    return loss
+
+x = tf.placeholder(tf.float32)
+y = tf.placeholder(tf.float32)
+
+loss = model(x, y)
+
+train_op = tf.train.AdamOptimizer(0.1).minimize(
+    tf.reduce_mean(loss))
+
+def generate_data():
+    x_val = np.random.uniform(-10.0, 10.0, size=100)
+    y_val = 5 * np.square(x_val) + 3
+    return x_val, y_val
+
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
+for _ in range(1000):
+    x_val, y_val = generate_data()
+    _, loss_val = sess.run([train_op, loss], {x: x_val, y: y_val})
+
+_, loss_val = sess.run([train_op, loss], {x: x_val, y: y_val})
+print(sess.run(tf.contrib.framework.get_variables_by_name("w")))
+```
+
+Now let's use make_parallel that we just wrote to parallelize this. We only need to change two lines of code from the above code:
+```python
+loss = make_parallel(model, 2, x=x, y=y)
+
+train_op = tf.train.AdamOptimizer(0.1).minimize(
+    tf.reduce_mean(loss),
+    colocate_gradients_with_ops=True)
+```
+
+The only thing that we need to change to parallelize backpropagation of gradients is to set the colocate_gradients_with_ops flag to true. This ensures that gradient ops run on the same device as the original op.
