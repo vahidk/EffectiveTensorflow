@@ -9,6 +9,11 @@ Table of Contents
 5. [Control flow operations: conditionals and loops](#control_flow)
 6. [Prototyping kernels and advanced visualization with Python ops](#python_ops)
 7. [Multi-GPU processing with data parallelism](#multi_gpu)
+8. [Tensorflow Cookbook](#cookbook)
+    - [Teacher forcing](#teacher_forcing)
+    - [Beam search](#beam_search)
+    - [Merge and transform](#merge_transform)
+    - [Entropy](#entropy)
 
 ## Tensorflow Basics
 <a name="basics"></a>
@@ -397,8 +402,7 @@ c = c.stack()
 
 print(tf.Session().run(c))
 ```
-Tensorflow while loops and tensor arrays are essential tools for building complex recurrent neural networks. As an exercise try writing a [beam search using](https://en.wikipedia.org/wiki/Beam_search) tf.while_loops. Can you make it more efficient with tensor arrays? Here's my [implementation](https://gist.github.com/vahidk/92d15155a5944c9bd9acf4edd9cef613).
-
+Tensorflow while loops and tensor arrays are essential tools for building complex recurrent neural networks. As an exercise try writing a [beam search using](https://en.wikipedia.org/wiki/Beam_search) tf.while_loops. Can you make it more efficient with tensor arrays?
 
 ## Prototyping kernels and advanced visualization with Python ops
 <a name="python_ops"></a>
@@ -498,7 +502,7 @@ def visualize_labeled_images(images, labels, max_outputs=3, name='image'):
 Note that since summaries are usually only evaluated once in a while (not per step), this implementation may be used in practice without worrying about efficiency.
 
 ## Multi-GPU processing with data parallelism
- <a name="multi_gpu"></a>
+<a name="multi_gpu"></a>
  If you write your software in a language like C++ for a single cpu core, making it run on multiple GPUs in parallel would require rewriting the software from scratch. But this is not the case with Tensorflow. Because of its symbolic nature, tensorflow can hide all that complexity, making it effortless to scale your program across many CPUs and GPUs.
 
  Let's start with the simple example of adding two vectors on CPU:
@@ -606,3 +610,205 @@ train_op = tf.train.AdamOptimizer(0.1).minimize(
 ```
 
 The only thing that we need to change to parallelize backpropagation of gradients is to set the colocate_gradients_with_ops flag to true. This ensures that gradient ops run on the same device as the original op.
+
+## Tensorflow Cookbook
+This section includes implementation of a set of common operations in Tensorflow.
+
+## Teacher Forcing <a name="teacher_forcing"></a>
+```python
+def rnn_teacher_force(update_fn, inputs, initial_state=None, dtype=None,
+                      scope='rnn'):
+  """Teacher forcing decoder.
+
+  Args:
+    update_fn: Function to compute the output and the next state given the
+               current state and input.
+    inputs: Tensor of batch_size x seq_length x dims.
+    initial_state: Initial state of the LSTM.
+    dtype: Type of initial LSTM state.
+    scope: Scope of the variables.
+  Returns:
+    outputs: Outputs of the LSTM.
+    state: Final state of the LSTM.
+  """
+  if initial_state is None:
+    batch_size = tf.shape(inputs[0])[0]
+    state = cell.zero_state(batch_size, dtype=dtype)
+  else:
+    state = initial_state
+
+  inputs = tf.unstack(inputs, axis=1)
+  outputs = []
+  for input in inputs:
+    with tf.variable_scope(scope, reuse=True if i > 0 else None):
+      output, state = update_fn(input, state)
+
+    outputs.append(output)
+
+  return outputs, state
+```
+
+### Beam Search <a name="beam_search"></a>
+```python
+import tensorflow as tf
+
+def get_shape(tensor):
+  """Returns static shape if available and dynamic shape otherwise."""
+  static_shape = tensor.get_shape().as_list()
+  dynamic_shape = tf.unstack(tf.shape(tensor))
+  dims = [s[1] if s[0] is None else s[0]
+          for s in zip(static_shape, dynamic_shape)]
+  return dims
+
+def log_prob_from_logits(logits, axis=-1):
+  """Normalize the log-probabilities so that probabilities sum to one."""
+  return logits - tf.reduce_logsumexp(logits, axis=axis, keep_dims=True)
+
+def batch_gather(tensor, indices):
+  """Gather in batch from a tensor of arbitrary size.
+  In pseduocode this module will produce the following:
+  output[i] = tf.gather(tensor[i], indices[i])
+  Args:
+    tensor: Tensor of arbitrary size.
+    indices: Vector of indices.
+  Returns:
+    output: A tensor of gathered values.
+  """
+  shape = get_shape(tensor)
+  flat_first = tf.reshape(tensor, [shape[0] * shape[1]] + shape[2:])
+  indices = tf.convert_to_tensor(indices)
+  offset_shape = [shape[0]] + [1] * (indices.get_shape().ndims - 1)
+  offset = tf.reshape(tf.range(shape[0]) * shape[1], offset_shape)
+  output = tf.gather(flat_first, indices + offset)
+  return output
+
+
+def rnn_beam_search(update_fn, initial_state, sequence_length, beam_width,
+                    begin_token_id, end_token_id, scope='rnn'):
+  """Beam-search decoder for recurrent models.
+  Args:
+    update_fn: Function to compute the next state and logits given the current
+               state and ids.
+    initial_state: Recurrent model states.
+    sequence_length: Length of the generated sequence.
+    beam_width: Beam width.
+    begin_token_id: Begin token id.
+    end_token_id: End token id.
+    scope: Scope of the variables.
+  Returns:
+    ids: Output indices.
+    logprobs: Output log probabilities probabilities.
+  """
+  batch_size = initial_state.get_shape().as_list()[0]
+
+  state = tf.tile(tf.expand_dims(initial_state, axis=1), [1, beam_width, 1])
+
+  sel_sum_logprobs = tf.log([[1.] + [0.] * (beam_width - 1)])
+
+  ids = tf.tile([[begin_token_id]], [batch_size, beam_width])
+  sel_ids = tf.expand_dims(ids, axis=2)
+
+  mask = tf.ones([batch_size, beam_width], dtype=tf.float32)
+
+  for i in range(sequence_length):
+    with tf.variable_scope(scope, reuse=True if i > 0 else None):
+
+      state, logits = update_fn(state, ids)
+      logits = log_prob_from_logits(logits)
+
+      sum_logprobs = (
+          tf.expand_dims(sel_sum_logprobs, axis=2) +
+          (logits * tf.expand_dims(mask, axis=2)))
+
+      num_classes = logits.get_shape().as_list()[-1]
+
+      sel_sum_logprobs, indices = tf.nn.top_k(
+          tf.reshape(sum_logprobs, [batch_size, num_classes * beam_width]),
+          k=beam_width)
+
+      ids = indices % num_classes
+
+      beam_ids = indices // num_classes
+
+      state = batch_gather(state, beam_ids)
+
+      sel_ids = tf.concat([batch_gather(sel_ids, beam_ids),
+                           tf.expand_dims(ids, axis=2)], axis=2)
+
+      mask = (batch_gather(mask, beam_ids) *
+              tf.to_float(tf.not_equal(ids, end_token_id)))
+
+  return sel_ids, sel_sum_logprobs
+```
+
+## Merge and transform <a name="merge_transform"></a>
+
+```python
+import tensorflow as tf
+
+def dense_layers(tensor, sizes,
+                 activation=tf.nn.relu,
+                 linear_top_layer=False,
+                 dropout=0.0,
+                 name=None, **kwargs):
+  """Builds a stack of fully connected layers with optional dropout."""
+  with tf.variable_scope(name, default_name='dense_layers'):
+    for i, size in enumerate(sizes):
+      if i == len(sizes) - 1 and linear_top_layer:
+        activation = None
+      tensor = tf.layers.dropout(tensor, dropout)
+      tensor = tf.layers.dense(
+          tensor,
+          size,
+          name='dense_layer_%d' % i,
+          activation=activation,
+          **kwargs)
+  return tensor
+
+def merge_and_transform(tensors, sizes, activation=tf.nn.relu,
+                        linear_top_layer=False, dropout=0.,
+                        name=None, **kwargs):
+  """Merge and transform features with broadcasting support."""
+  with tf.variable_scope(name, default_name='tile_concat_dense'):
+    # Apply linear projection to input tensors.
+    projs = []
+    for i, tensor in enumerate(tensors):
+      drop = tf.layers.dropout(tensor, dropout)
+      proj = tf.layers.dense(
+          drop, sizes[0], activation=None,
+          scope='proj_%d' % i,
+          **kwargs)
+      projs.append(proj)
+
+    # Compute sum of tensors.
+    result = projs.pop()
+    for proj in projs:
+      result = result + proj
+
+    # Apply nonlinearity.
+    if not (len(sizes) == 1 and linear_top_layer):
+      result = activation(result)
+
+    # Apply rest of the nonlinearities.
+    net = dense_layers(result, sizes[1:],
+                       activation=activation,
+                       dropout=dropout,
+                       linear_top_layer=linear_top_layer,
+                       **kwargs)
+  return net
+```
+
+## Entropy <a name="entropy"></a>
+
+```python
+import tensorflow as tf
+
+def softmax(logits, dims=-1):
+  exp = tf.exp(logits - tf.reduce_max(logits, dims, keep_dims=True))
+  return exp / tf.reduce_sum(exp, dims, keep_dims=True)
+
+def entropy(logits, dims=-1):
+  probs = softmax(logits, dims)
+  nplogp = probs * (tf.reduce_logsumexp(logits, dims, keep_dims=True) - logits)
+  return tf.reduce_sum(nplogp, dims)
+```
