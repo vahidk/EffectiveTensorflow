@@ -3,6 +3,7 @@
 Table of Contents
 =================
 1. [Tensorflow Basics](#basics)
+2. [Building a neural network framework with learn API](#estimator)
 2. [Understanding static and dynamic shapes](#shapes)
 3. [Broadcasting the good and the ugly](#broadcast)
 4. [Understanding order of execution and control dependencies](#control_deps)
@@ -105,7 +106,134 @@ Which is a relatively close approximation to our parameters.
 
 This is just tip of the iceberg for what Tensorflow can do. Many problems such a optimizing large neural networks with millions of parameters can be implemented efficiently in Tensorflow in just a few lines of code. Tensorflow takes care of scaling across multiple devices, and threads, and supports a variety of platforms.
 
-For simplicity in most of the examples here we manually create sessions and we don't care about saving and loading checkpoints but this is not how we usually do things in practice. You most probably want to use the estimator API to take care of session management and logging. We provide a simple extendable framework in the code/framework directory for an example of a practical framework for training neural networks using Tensorflow.
+## Building a neural network training framework with learn API
+<a name="estimator"></a>
+For simplicity, in most of the examples here we manually create sessions and we don't care about saving and loading checkpoints but this is not how we usually do things in practice. You most probably want to use the estimator API to take care of session management and logging. We provide a simple but practical framework in the [code/framework](https://github.com/vahidk/EffectiveTensorflow/tree/master/code/framework) directory for training neural networks using Tensorflow. In this item we explain how this framework works.
+
+When experimenting with neural network models you usually have a training/test split. You want to train your model on the training set, and once in a while evaluate it on test set and compute some metrics. You also need to store the model parameters as a checkpoint, and ideally you want to be able to stop and resume training. Tensorflow's estimator API is designed to make this job easier, letting us focus on developing the actual model.
+
+The most basic way of using tf.learn API is to use tf.Estimator object directly. You need to define a model function that defines a loss function, a train op and one or a set of predictions:
+```python
+import tensorflow as tf
+
+def model_fn(features, labels, mode, params):
+    predictions = ...
+    loss = ...
+    train_op = ...
+    return tf.contrib.learn.ModelFnOps(
+        mode=mode,
+        predictions=predictions,
+        loss=loss,
+        train_op=train_op)
+
+params = ...
+run_config = learn.RunConfig(model_dir=FLAGS.output_dir)
+estimator = tf.contrib.learn.Estimator(
+    model_fn=model_fn, config=run_config, params=params)
+```
+
+To train the model you would then simply call Estimator.fit() function while providing an input function to read the data.
+```python
+def input_fn():
+    features = ...
+    labels = ...
+    return features, labels
+
+estimator.fit(input_fn=input_fn, max_steps=...)
+```
+
+and to evaluate the model, call Estimator.evaluate(), providing a set of metrics:
+```
+metrics = { 'accuracy': tf.metrics.accuracy }
+estimator.evaluate(input_fn=input_fn, metrics=metrics)
+```
+
+Estimator object might be good enough for simple cases, but Tensorflow provides an even higher level object called Experiment which provides some additional useful functionality. Creating an experiment object is very easy:
+
+```python
+experiment = tf.contrib.learn.Experiment(
+    estimator=estimator,
+    train_input_fn=train_input_fn,
+    eval_input_fn=eval_input_fn,
+    eval_metrics=eval_metrics)
+```
+
+Now we can call train_and_evaluate function to compute the metrics while training.
+```
+experiment.train_and_evaluate()
+```
+
+An even higher level way of running experiments is by using learn_runner.run() function. Here's how our main function looks like in the provided framework:
+```python
+import tensorflow as tf
+
+tf.flags.DEFINE_string('output_dir', '', 'Optional output dir.')
+tf.flags.DEFINE_string('schedule', 'train_and_evaluate', 'Schedule.')
+tf.flags.DEFINE_string('hparams', '', 'Hyper parameters.')
+
+FLAGS = tf.flags.FLAGS
+learn = tf.contrib.learn
+
+def experiment_fn(run_config, hparams):
+  estimator = learn.Estimator(
+    model_fn=make_model_fn(), config=run_config, params=hparams)
+  eval_metrics = MODELS[FLAGS.model].eval_metrics_fn(hparams)
+  return learn.Experiment(
+    estimator=estimator,
+    train_input_fn=make_input_fn(learn.ModeKeys.TRAIN, hparams),
+    eval_input_fn=make_input_fn(learn.ModeKeys.EVAL, hparams))
+
+def main(unused_argv):
+  run_config = learn.RunConfig(model_dir=FLAGS.output_dir)
+  hparams = tf.contrib.training.HParams()
+  hparams.parse(FLAGS.hparams)
+
+  estimator = learn.learn_runner.run(
+    experiment_fn=experiment_fn,
+    run_config=run_config,
+    schedule=FLAGS.schedule,
+    hparams=hparams)
+
+if __name__ == '__main__':
+  tf.app.run()
+```
+The schedule flag decides which member function of the Experiment object gets called. So, if you for example set schedule to 'train_and_evaluate', experiment.train_and_evaluate() would be called.
+
+Now let's have a look at how we might actually write an input function. One way to do this  is through python ops (See [this item](#python_ops) for more information on python ops).
+```python
+def input_fn():
+    def _py_input_fn():
+        # read a new example in python
+        feature = ...
+        label = ...
+        return feature, label
+
+    # Convert that to tensors
+    feature, label = tf.py_func(_py_input_fn, [], (tf.string, tf.int64))
+
+    feature_batch, label_batch = tf.train.shuffle_batch(
+        [feature, label], batch_size=..., capacity=...,
+        min_after_dequeue=...)
+
+    return feature_batch, label_batch
+```
+
+An alternative way is to write your data as TFRecords format and use the multi-threaded TFRecordReader object to read the data:
+```python
+def input_fn():
+    features = {
+        'image': tf.FixedLenFeature([], tf.string),
+        'label': tf.FixedLenFeature([], tf.int64),
+    }
+    tensors = tf.contrib.learn.read_batch_features(
+        file_pattern=...,
+        batch_size=...,
+        features=features,
+        reader=tf.TFRecordReader)
+```
+See [mnist.py](https://github.com/vahidk/EffectiveTensorflow/blob/master/code/framework/dataset/mnist.py) for an example of how to convert your data to TFRecords format.
+
+And that's it! This is all you need to get started with Tensorflow learn API. I recommend to have a look at the [source code](https://github.com/vahidk/EffectiveTensorflow/tree/master/code/framework) and see the official python API to learn more about the parameters.
 
 ## Understanding static and dynamic shapes
 <a name="shapes"></a>
