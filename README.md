@@ -127,7 +127,7 @@ def model_fn(features, labels, mode, params):
         train_op=train_op)
 
 params = ...
-run_config = learn.RunConfig(model_dir=FLAGS.output_dir)
+run_config = tf.contrib.learn.RunConfig(model_dir=FLAGS.output_dir)
 estimator = tf.contrib.learn.Estimator(
     model_fn=model_fn, config=run_config, params=params)
 ```
