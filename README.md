@@ -3,7 +3,7 @@
 Table of Contents
 =================
 1. [Tensorflow Basics](#basics)
-2. [Building a neural network framework with learn API](#estimator)
+2. [Building a neural network framework with learn API](#tf_learn)
 2. [Understanding static and dynamic shapes](#shapes)
 3. [Broadcasting the good and the ugly](#broadcast)
 4. [Understanding order of execution and control dependencies](#control_deps)
@@ -107,7 +107,7 @@ Which is a relatively close approximation to our parameters.
 This is just tip of the iceberg for what Tensorflow can do. Many problems such a optimizing large neural networks with millions of parameters can be implemented efficiently in Tensorflow in just a few lines of code. Tensorflow takes care of scaling across multiple devices, and threads, and supports a variety of platforms.
 
 ## Building a neural network training framework with learn API
-<a name="estimator"></a>
+<a name="tf_learn"></a>
 For simplicity, in most of the examples here we manually create sessions and we don't care about saving and loading checkpoints but this is not how we usually do things in practice. You most probably want to use the estimator API to take care of session management and logging. We provide a simple but practical framework in the [code/framework](https://github.com/vahidk/EffectiveTensorflow/tree/master/code/framework) directory for training neural networks using Tensorflow. In this item we explain how this framework works.
 
 When experimenting with neural network models you usually have a training/test split. You want to train your model on the training set, and once in a while evaluate it on test set and compute some metrics. You also need to store the model parameters as a checkpoint, and ideally you want to be able to stop and resume training. Tensorflow's estimator API is designed to make this job easier, letting us focus on developing the actual model.
@@ -233,7 +233,7 @@ def input_fn():
 ```
 See [mnist.py](https://github.com/vahidk/EffectiveTensorflow/blob/master/code/framework/dataset/mnist.py) for an example of how to convert your data to TFRecords format.
 
-And that's it! This is all you need to get started with Tensorflow learn API. I recommend to have a look at the [source code](https://github.com/vahidk/EffectiveTensorflow/tree/master/code/framework) and see the official python API to learn more about the parameters.
+And that's it! This is all you need to get started with Tensorflow learn API. I recommend to have a look at the [source code](https://github.com/vahidk/EffectiveTensorflow/tree/master/code/framework) and see the official python API to learn more about the learn API.
 
 ## Understanding static and dynamic shapes
 <a name="shapes"></a>
