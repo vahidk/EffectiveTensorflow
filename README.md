@@ -10,7 +10,6 @@ Table of Contents
 6. [Prototyping kernels and advanced visualization with Python ops](#python_ops)
 7. [Multi-GPU processing with data parallelism](#multi_gpu)
 8. [Tensorflow Cookbook](#cookbook)
-    - [Teacher forcing](#teacher_forcing)
     - [Beam search](#beam_search)
     - [Merge and transform](#merge_transform)
     - [Entropy](#entropy)
@@ -614,40 +613,6 @@ The only thing that we need to change to parallelize backpropagation of gradient
 ## Tensorflow Cookbook
 <a name="cookbook"></a>
 This section includes implementation of a set of common operations in Tensorflow.
-
-## Teacher Forcing <a name="teacher_forcing"></a>
-```python
-def rnn_teacher_force(update_fn, inputs, initial_state=None, dtype=None,
-                      scope='rnn'):
-  """Teacher forcing decoder.
-
-  Args:
-    update_fn: Function to compute the output and the next state given the
-               current state and input.
-    inputs: Tensor of batch_size x seq_length x dims.
-    initial_state: Initial state of the LSTM.
-    dtype: Type of initial LSTM state.
-    scope: Scope of the variables.
-  Returns:
-    outputs: Outputs of the LSTM.
-    state: Final state of the LSTM.
-  """
-  if initial_state is None:
-    batch_size = tf.shape(inputs[0])[0]
-    state = cell.zero_state(batch_size, dtype=dtype)
-  else:
-    state = initial_state
-
-  inputs = tf.unstack(inputs, axis=1)
-  outputs = []
-  for input in inputs:
-    with tf.variable_scope(scope, reuse=True if i > 0 else None):
-      output, state = update_fn(input, state)
-
-    outputs.append(output)
-
-  return outputs, state
-```
 
 ### Beam Search <a name="beam_search"></a>
 ```python
