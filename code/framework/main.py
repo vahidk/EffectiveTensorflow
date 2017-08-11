@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
-import numpy as np
 import tensorflow as tf
 
 from common import ops
@@ -78,9 +77,9 @@ def make_model_fn():
     global_step = tf.train.get_or_create_global_step()
 
     if FLAGS.num_gpus > 0 and mode == learn.ModeKeys.TRAIN:
-      split_features = {k: tf.split(v, FLAGS.num_gpus) 
+      split_features = {k: tf.split(v, FLAGS.num_gpus)
                         for k, v in features.iteritems()}
-      split_labels = {k: tf.split(v, FLAGS.num_gpus) 
+      split_labels = {k: tf.split(v, FLAGS.num_gpus)
                       for k, v in labels.iteritems()}
       grads = []
       predictions = collections.defaultdict(list)
@@ -94,7 +93,7 @@ def make_model_fn():
           with tf.name_scope('tower_%d' % i):
             with tf.variable_scope(tf.get_variable_scope(), reuse=i > 0):
               device_features = {k: v[i] for k, v in split_features.iteritems()}
-              device_labels = {k:v[i] for k, v in split_labels.iteritems()}
+              device_labels = {k: v[i] for k, v in split_labels.iteritems()}
 
               device_predictions, device_loss = model_fn(
                 device_features, device_labels, mode, params)
@@ -110,7 +109,7 @@ def make_model_fn():
 
       grads = ops.average_gradients(grads)
       train_op = opt.apply_gradients(grads, global_step=global_step)
-        
+
       for k, v in predictions.iteritems():
         predictions[k] = tf.concat(v, axis=0)
 
@@ -128,11 +127,11 @@ def make_model_fn():
     tf.summary.scalar('loss/loss', loss)
 
     return tf.contrib.learn.ModelFnOps(
-      mode=mode, 
-      predictions=predictions, 
-      loss=loss, 
+      mode=mode,
+      predictions=predictions,
+      loss=loss,
       train_op=train_op)
-  
+
   return _model_fn
 
 
@@ -160,7 +159,7 @@ def main(unused_argv):
   run_config = learn.RunConfig(
     model_dir=model_dir,
     save_summary_steps=FLAGS.save_summary_steps,
-    save_checkpoints_steps=FLAGS.save_checkpoints_steps, 
+    save_checkpoints_steps=FLAGS.save_checkpoints_steps,
     save_checkpoints_secs=None,
     session_config=session_config)
 
