@@ -612,6 +612,7 @@ train_op = tf.train.AdamOptimizer(0.1).minimize(
 The only thing that we need to change to parallelize backpropagation of gradients is to set the colocate_gradients_with_ops flag to true. This ensures that gradient ops run on the same device as the original op.
 
 ## Tensorflow Cookbook
+<a name="cookbook"></a>
 This section includes implementation of a set of common operations in Tensorflow.
 
 ## Teacher Forcing <a name="teacher_forcing"></a>
