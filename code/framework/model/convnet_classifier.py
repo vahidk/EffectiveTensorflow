@@ -24,15 +24,15 @@ def model_fn(features, labels, mode, params):
   drop_rate = params.drop_rate if mode == tf.estimator.ModeKeys.TRAIN else 0.0
 
   features = ops.conv_layers(
-    images, 
-    filters=[32, 64, 128], 
+    images,
+    filters=[32, 64, 128],
     kernels=[3, 3, 3],
     pools=[2, 2, 2])
 
   features = tf.contrib.layers.flatten(features)
 
   logits = ops.dense_layers(
-    features, [512, params.num_classes], 
+    features, [512, params.num_classes],
     drop_rate=drop_rate,
     linear_top_layer=True)
 

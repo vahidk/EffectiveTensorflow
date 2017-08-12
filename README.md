@@ -754,7 +754,7 @@ import tensorflow as tf
 
 def get_shape(tensor):
   """Returns static shape if available and dynamic shape otherwise."""
-  static_shape = tensor.get_shape().as_list()
+  static_shape = tensor.shape.as_list()
   dynamic_shape = tf.unstack(tf.shape(tensor))
   dims = [s[1] if s[0] is None else s[0]
           for s in zip(static_shape, dynamic_shape)]
@@ -777,7 +777,7 @@ def batch_gather(tensor, indices):
   shape = get_shape(tensor)
   flat_first = tf.reshape(tensor, [shape[0] * shape[1]] + shape[2:])
   indices = tf.convert_to_tensor(indices)
-  offset_shape = [shape[0]] + [1] * (indices.get_shape().ndims - 1)
+  offset_shape = [shape[0]] + [1] * (indices.shape.ndims - 1)
   offset = tf.reshape(tf.range(shape[0]) * shape[1], offset_shape)
   output = tf.gather(flat_first, indices + offset)
   return output
@@ -799,7 +799,7 @@ def rnn_beam_search(update_fn, initial_state, sequence_length, beam_width,
     ids: Output indices.
     logprobs: Output log probabilities probabilities.
   """
-  batch_size = initial_state.get_shape().as_list()[0]
+  batch_size = initial_state.shape.as_list()[0]
 
   state = tf.tile(tf.expand_dims(initial_state, axis=1), [1, beam_width, 1])
 
@@ -820,7 +820,7 @@ def rnn_beam_search(update_fn, initial_state, sequence_length, beam_width,
           tf.expand_dims(sel_sum_logprobs, axis=2) +
           (logits * tf.expand_dims(mask, axis=2)))
 
-      num_classes = logits.get_shape().as_list()[-1]
+      num_classes = logits.shape.as_list()[-1]
 
       sel_sum_logprobs, indices = tf.nn.top_k(
           tf.reshape(sum_logprobs, [batch_size, num_classes * beam_width]),

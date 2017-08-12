@@ -55,12 +55,12 @@ def _download_data():
   if not os.path.exists(LOCAL_DIR):
     os.makedirs(LOCAL_DIR)
   for name in [
-    TRAIN_IMAGE_URL, 
-    TRAIN_LABEL_URL, 
-    TEST_IMAGE_URL, 
+    TRAIN_IMAGE_URL,
+    TRAIN_LABEL_URL,
+    TEST_IMAGE_URL,
     TEST_LABEL_URL]:
     if not os.path.exists(LOCAL_DIR + name):
-      urllib.request.urlretrieve(REMOTE_URL + name, LOCAL_DIR + name)  
+      urllib.request.urlretrieve(REMOTE_URL + name, LOCAL_DIR + name)
 
 
 def _image_iterator(split):
@@ -69,7 +69,7 @@ def _image_iterator(split):
     tf.estimator.ModeKeys.EVAL: TEST_IMAGE_URL
   }[split]
   label_urls = {
-    tf.estimator.ModeKeys.TRAIN: TRAIN_LABEL_URL, 
+    tf.estimator.ModeKeys.TRAIN: TRAIN_LABEL_URL,
     tf.estimator.ModeKeys.EVAL: TEST_LABEL_URL
   }[split]
 

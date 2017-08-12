@@ -8,7 +8,7 @@ import tensorflow as tf
 
 def get_shape(tensor):
   """Returns static shape if available and dynamic shape otherwise."""
-  static_shape = tensor.get_shape().as_list()
+  static_shape = tensor.shape.as_list()
   dynamic_shape = tf.unstack(tf.shape(tensor))
   dims = [s[1] if s[0] is None else s[0]
           for s in zip(static_shape, dynamic_shape)]
@@ -30,12 +30,12 @@ def reshape(tensor, dims_list):
   return tensor
 
 
-def dense_layers(tensor, 
+def dense_layers(tensor,
                  sizes,
                  activation=tf.nn.relu,
                  linear_top_layer=False,
                  drop_rate=0.0,
-                 name=None, 
+                 name=None,
                  **kwargs):
   """Builds a stack of fully connected layers with optional dropout."""
   with tf.variable_scope(name, default_name='dense_layers'):
@@ -52,19 +52,19 @@ def dense_layers(tensor,
   return tensor
 
 
-def conv_layers(tensor, 
-                filters, 
-                kernels, 
-                pools, 
-                padding="same", 
+def conv_layers(tensor,
+                filters,
+                kernels,
+                pools,
+                padding="same",
                 activation=tf.nn.relu,
                 drop_rate=0.0,
                 **kwargs):
   for fs, ks, ps in zip(filters, kernels, pools):
     tensor = tf.layers.dropout(tensor, drop_rate)
     tensor = tf.layers.conv2d(
-        tensor, 
-        filters=fs, 
+        tensor,
+        filters=fs,
         kernel_size=ks,
         padding=padding,
         activation=activation,
