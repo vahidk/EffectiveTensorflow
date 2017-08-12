@@ -288,12 +288,12 @@ a = tf.Variable(1)
 b = tf.constant(2)
 c = a + b
 
-inc = tf.assign(a, 5)
+assign = tf.assign(a, 5)
 
 sess = tf.Session()
 for i in range(10):
     sess.run(tf.global_variables_initializer())
-    print(sess.run([inc, c]))
+    print(sess.run([assign, c]))
 ```
 Note that the tensor c here won't have a deterministic value. This value might be 3 or 7 depending on whether addition or assignment gets executed first.
 
@@ -306,12 +306,12 @@ b = tf.constant(2)
 c = a + b
 
 with tf.control_dependencies([c]):
-    inc = tf.assign(a, 5)
+    assign = tf.assign(a, 5)
 
 sess = tf.Session()
 for i in range(10):
     sess.run(tf.global_variables_initializer())
-    print(sess.run([inc, c]))
+    print(sess.run([assign, c]))
 ```
 This will make sure that the assign op will be called after the addition.
 
