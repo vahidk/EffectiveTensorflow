@@ -114,8 +114,7 @@ import tensorflow as tf
 
 a = tf.placeholder(tf.float32, [None, 128])
 ```
-This means that the first dimension can be of any size and will be determined dynamically during Session.run(). You
-can query the symbolic shape of a Tensor as follows:
+This means that the first dimension can be of any size and will be determined dynamically during Session.run(). You can query the static shape of a Tensor as follows:
 
 ```python
 static_shape = a.shape  # returns TensorShape([Dimension(None), Dimension(128)])
@@ -617,9 +616,9 @@ The only thing that we need to change to parallelize backpropagation of gradient
 
 ## Building a neural network training framework with learn API
 <a name="tf_learn"></a>
-For simplicity, in most of the examples here we manually create sessions and we don't care about saving and loading checkpoints but this is not how we usually do things in practice. You most probably want to use the estimator API to take care of session management and logging. We provide a simple but practical framework in the [code/framework](https://github.com/vahidk/EffectiveTensorflow/tree/master/code/framework) directory for training neural networks using Tensorflow. In this item we explain how this framework works.
+For simplicity, in most of the examples here we manually create sessions and we don't care about saving and loading checkpoints but this is not how we usually do things in practice. You most probably want to use the learn API to take care of session management and logging. We provide a simple but practical framework in the [code/framework](https://github.com/vahidk/EffectiveTensorflow/tree/master/code/framework) directory for training neural networks using Tensorflow. In this item we explain how this framework works.
 
-When experimenting with neural network models you usually have a training/test split. You want to train your model on the training set, and once in a while evaluate it on test set and compute some metrics. You also need to store the model parameters as a checkpoint, and ideally you want to be able to stop and resume training. Tensorflow's estimator API is designed to make this job easier, letting us focus on developing the actual model.
+When experimenting with neural network models you usually have a training/test split. You want to train your model on the training set, and once in a while evaluate it on test set and compute some metrics. You also need to store the model parameters as a checkpoint, and ideally you want to be able to stop and resume training. Tensorflow's learn API is designed to make this job easier, letting us focus on developing the actual model.
 
 The most basic way of using tf.learn API is to use tf.Estimator object directly. You need to define a model function that defines a loss function, a train op and one or a set of predictions:
 ```python
