@@ -18,7 +18,7 @@ tf.flags.DEFINE_string('schedule', 'train_and_evaluate', 'Schedule.')
 tf.flags.DEFINE_string('hparams', '', 'Hyper parameters.')
 tf.flags.DEFINE_integer('save_summary_steps', 10, 'Summary steps.')
 tf.flags.DEFINE_integer('save_checkpoints_steps', 10, 'Checkpoint steps.')
-tf.flags.DEFINE_integer('eval_steps', None, 'Eval steps.')
+tf.flags.DEFINE_integer('eval_steps', None, 'Number of eval steps.')
 tf.flags.DEFINE_integer('eval_frequency', 10, 'Eval frequency.')
 tf.flags.DEFINE_integer('num_gpus', 0, 'Numner of gpus.')
 

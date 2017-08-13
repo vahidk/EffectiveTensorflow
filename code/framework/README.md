@@ -3,6 +3,11 @@
 Follow the example in dataset/mnist.py and model/convnet_classifier.py for
 examples of how to define custom datasets and models.
 
+## Install dependencies
+```
+pip install tensorflow numpy pillow matplotlib six
+```
+
 ## Mnist
 To download the mnist dataset run:
 ```

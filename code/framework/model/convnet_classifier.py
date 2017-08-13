@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 from common import ops
+from common import summary
 
 FLAGS = tf.flags.FLAGS
 
@@ -18,8 +19,6 @@ HPARAMS = {
 def model_fn(features, labels, mode, params):
   images = features['image']
   labels = labels['label']
-
-  tf.summary.image("images", images)
 
   drop_rate = params.drop_rate if mode == tf.estimator.ModeKeys.TRAIN else 0.0
 
@@ -41,10 +40,12 @@ def model_fn(features, labels, mode, params):
   loss = tf.losses.sparse_softmax_cross_entropy(
     labels=labels, logits=logits)
 
+  summary.labeled_image("images", images, predictions)
+
   return {'predictions': predictions}, loss
 
 
-def eval_metrics_fn(hparams):
+def eval_metrics_fn(params):
   metrics_dict = {}
   metrics_dict['accuracy'] = tf.contrib.learn.MetricSpec(tf.metrics.accuracy)
   return metrics_dict

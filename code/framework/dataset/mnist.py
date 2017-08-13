@@ -42,7 +42,7 @@ def get_split(split):
 
 def map_features(features):
   def _decode_image(image):
-    image = tf.to_float(tf.decode_raw(image, tf.uint8)) / 255.0
+    image = tf.to_float(tf.image.decode_image(image, channels=1)) / 255.0
     image = tf.reshape(image, [IMAGE_SIZE, IMAGE_SIZE, 1])
     return image
 
@@ -76,7 +76,7 @@ def _image_iterator(split):
   with gzip.open(LOCAL_DIR + image_urls, 'rb') as f:
     magic, num, rows, cols = struct.unpack(">IIII", f.read(16))
     images = np.frombuffer(f.read(num * rows * cols), dtype=np.uint8)
-    images = np.reshape(images, [num, rows * cols])
+    images = np.reshape(images, [num, rows, cols])
     print('Loaded %d images of size [%d, %d].' % (num, rows, cols))
 
   with gzip.open(LOCAL_DIR + label_urls, 'rb') as f:
@@ -85,7 +85,7 @@ def _image_iterator(split):
     print('Loaded %d labels.' % num)
 
   for i in range(num):
-    yield images[i], labels[i]
+    yield utils.encode_image(images[i]), labels[i]
 
 
 def _convert_data(split):
@@ -94,7 +94,7 @@ def _convert_data(split):
     example = tf.train.Example(features=tf.train.Features(
       feature={
         'image': tf.train.Feature(
-          bytes_list=tf.train.BytesList(value=[image.tobytes()])),
+          bytes_list=tf.train.BytesList(value=[image])),
         'label': tf.train.Feature(
           int64_list=tf.train.Int64List(value=[label.astype(np.int64)]))
       }))
@@ -112,12 +112,11 @@ def _visulize_data(split=tf.estimator.ModeKeys.TRAIN):
   example = tf.train.Example()
   example.ParseFromString(item)
 
-  image = np.frombuffer(
-    example.features.feature['image'].bytes_list.value[0],
-    dtype=np.uint8).reshape([IMAGE_SIZE, IMAGE_SIZE])
+  image = utils.decode_image(
+    example.features.feature['image'].bytes_list.value[0])
   label = example.features.feature['label'].int64_list.value[0]
 
-  plt.imshow(image)
+  plt.imshow(image.squeeze())
   plt.title('Label: %d' % label)
   plt.show()
 
