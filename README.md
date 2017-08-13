@@ -553,7 +553,7 @@ def make_parallel(fn, num_gpus, **kwargs):
     for i in range(num_gpus):
         with tf.device(tf.DeviceSpec(device_type='GPU', device_index=i)):
             with tf.variable_scope(tf.get_variable_scope(), reuse=i > 0):
-                out_split.append(fn(**kwargs))
+                out_split.append(fn(**{k : v[i] for k, v in in_splits.items()}))
 
     return tf.concat(out_split, axis=0)
 
