@@ -1,0 +1,13 @@
+RevNets in tensorflow
+
+Profiling and optimizing models
+  XLA
+
+Visualization
+
+Debugging:
+  summaries
+  tf.Debugger
+
+Distributed computing
+

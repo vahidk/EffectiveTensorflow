@@ -2,15 +2,16 @@
 
 Table of Contents
 =================
-1. [Tensorflow Basics](#basics)
-2. [Understanding static and dynamic shapes](#shapes)
-3. [Broadcasting the good and the ugly](#broadcast)
-4. [Understanding order of execution and control dependencies](#control_deps)
-5. [Control flow operations: conditionals and loops](#control_flow)
-6. [Prototyping kernels and advanced visualization with Python ops](#python_ops)
-7. [Multi-GPU processing with data parallelism](#multi_gpu)
-8. [Building a neural network training framework with learn API](#tf_learn)
-9. [Tensorflow Cookbook](#cookbook)
+1.  [Tensorflow Basics](#basics)
+2.  [Understanding static and dynamic shapes](#shapes)
+3.  [Broadcasting the good and the ugly](#broadcast)
+4.  [Understanding order of execution and control dependencies](#control_deps)
+5.  [Control flow operations: conditionals and loops](#control_flow)
+6.  [Prototyping kernels and advanced visualization with Python ops](#python_ops)
+7.  [Multi-GPU processing with data parallelism](#multi_gpu)
+8.  [Debugging Tensorflow models](#debug)
+9.  [Building a neural network training framework with learn API](#tf_learn)
+10. [Tensorflow Cookbook](#cookbook)
     - [Beam search](#beam_search)
     - [Merge](#merge)
     - [Entropy](#entropy)
@@ -615,6 +616,140 @@ train_op = tf.train.AdamOptimizer(0.1).minimize(
 ```
 
 The only thing that we need to change to parallelize backpropagation of gradients is to set the colocate_gradients_with_ops flag to true. This ensures that gradient ops run on the same device as the original op.
+
+## Debugging Tensorflow models
+<a name="debug"></a>
+Symbolic nature of Tensorflow makes it relatively more difficult to debug Tensorflow code compared to regular python code. Here we introduce a number of tools included with Tensorflow that make debugging much easier.
+
+Probably the most common error one can make when using Tensorflow is passing Tensors of wrong shape to ops. Many Tensorflow ops can operate on tensors of different ranks and shapes. This can be convenient when using the API, but may lead to extra headache when things go wrong.
+
+For example, consider the tf.matmul op, it can multiply two matrices:
+```python
+a = tf.random_uniform([2, 3])
+b = tf.random_uniform([3, 4])
+c = tf.matmul(a, b)  # c is a tensor of shape [2, 4]
+```
+
+But the same function also does batch matrix multiplication:
+```python
+a = tf.random_uniform([10, 2, 3])
+b = tf.random_uniform([10, 3, 4])
+tf.matmul(a, b)  # c is a tensor of shape [10, 2, 4]
+```
+
+Another example that we talked about before in the [broadcasting](#broadcast) section is add operation which supports broadcasting:
+```python
+a = tf.constant([[1.], [2.]])
+b = tf.constant([1., 2.])
+c = a + b  # c is a tensor of shape [2, 2]
+```
+
+### Validating your tensors with tf.assert* ops
+
+One way to reduce the chance of unwanted behavior is to explicitly verify the rank or shape of intermediate tensors with tf.assert* ops.
+```python
+a = tf.constant([[1.], [2.]])
+b = tf.constant([1., 2.])
+check_a = tf.assert_rank(a, 1)  # This will raise an InvalidArgumentError exception
+check_b = tf.assert_rank(b, 1)
+with tf.control_dependencies([check_a, check_b]):
+    c = a + b  # c is a tensor of shape [2, 2]
+```
+Remember that assertion nodes like other operations are part of the graph and if not evaluated would get pruned during Session.run(). So make sure to make explicit dependencies to assertion ops, to force Tensorflow to execute them.
+
+You can also use assertions to validate the value of tensors at runtime:
+```python
+check_pos = tf.assert_positive(a)
+```
+See the official docs for a full list of assertion ops.
+
+### Logging tensor values with tf.Print
+
+Another useful built-in function is tf.Print which logs the given tensors to the standard error:
+
+```python
+input_copy = tf.Print(input, tensors_to_print_list)
+```
+Note that tf.Print returns a copy of its first argument as output. One way to force tf.Print to run is to pass its output to another op that gets executed. For example if we want to print value of tensors a and b before adding them we could do something like this:
+```python
+a = ...
+b = ...
+a = tf.Print(a, [a, b])
+c = a + b
+```
+
+Alternatively we could manually define a control dependency.
+
+### Check your gradients with tf.compute_gradient_error
+
+__Not__ all the operations in Tensorflow come with gradients, and it's possible to write a non-automatic differentiable graph in Tensorflow without knowing.
+
+Let's look at an example:
+```python
+import tensorflow as tf
+
+def non_differentiable_entropy(logits):
+    probs = tf.nn.softmax(logits)
+    return tf.nn.softmax_cross_entropy_with_logits(labels=probs, logits=logits)
+
+w = tf.get_variable('w', shape=[5])
+y = -non_differentiable_entropy(w)
+
+opt = tf.train.AdamOptimizer()
+train_op = opt.minimize(y)
+
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
+for i in range(10000):
+    sess.run(train_op)
+
+print(sess.run(tf.nn.softmax(w)))
+```
+We are using tf.nn.softmax_cross_entropy_with_logits to define entropy over a categorical distribution. We then use Adam optimizer to find the weights with maximum entropy. If you have passed a course on information theory, you would know that uniform distribution contains maximum amount of information. So you would expect for the result to be [0.2, 0.2, 0.2, 0.2, 0.2]. But if you run this you may get unexpected results like this:
+```
+[ 0.34081486  0.24287023  0.23465775  0.08935683  0.09230034]
+```
+It turns out tf.nn.softmax_cross_entropy_with_logits has undefined gradients with respect to labels! But how may we spot this if we didn't know?
+
+Fortunately for us Tensorflow comes with a numerical differentiator that can be used to find symbolic gradient errors. Let's see how we can use it:
+
+```python
+with tf.Session():
+    diff = tf.test.compute_gradient_error(w, [5], y, [])
+    print(diff)
+```
+If you run this, you would see that the difference between the numerical and symbolic gradients are pretty high (0.06 - 0.1 in my tries).
+
+Now let's fix our function with a differentiable version of the entropy and check again:
+```python
+import tensorflow as tf
+import numpy as np
+
+def entropy(logits, dim=-1):
+    probs = tf.nn.softmax(logits, dim)
+    nplogp = probs * (tf.reduce_logsumexp(logits, dim, keep_dims=True) - logits)
+    return tf.reduce_sum(nplogp, dim)
+
+w = tf.get_variable('w', shape=[5])
+y = -non_differentiable_entropy(w)
+# y = -entropy(w)
+
+print(w.get_shape())
+print(y.get_shape())
+
+with tf.Session() as sess:
+    diff = tf.test.compute_gradient_error(w, [5], y, [])
+    print(diff)
+```
+The difference should be ~0.0001 which looks much better.
+
+Now if you run the optimizer again with the correct version you can see the final weights would be:
+```
+[ 0.2  0.2  0.2  0.2  0.2]
+```
+which are exactly what we wanted.
+
+Tensorflow summaries, and tfdbg (TensorFlow Debugger) are other tools that can be used for debugging. Please refer to the official docs to learn more.
 
 ## Building a neural network training framework with learn API
 <a name="tf_learn"></a>
