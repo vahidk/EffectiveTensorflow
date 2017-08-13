@@ -1,10 +1,10 @@
 # Tensorflow training framework
 
-Folow the example in dataset/mnist.py and model/convnet_classifier.py for
-examples of how to define custom models and datasets.
+Follow the example in dataset/mnist.py and model/convnet_classifier.py for
+examples of how to define custom datasets and models.
 
 ## Mnist
-To download mnist dataset run:
+To download the mnist dataset run:
 ```
 python -m dataset.mnist convert
 ```

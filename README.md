@@ -195,7 +195,7 @@ b = tf.constant([[1.], [2.]])
 c = a + b
 ```
 
-Broadcasting allows us to perform implicit tiling which makes the code shorter, and more memory efficient, since we don’t need to store the result of the tiling operation. One neat place that this can be used is when combining features of different length. In order to concatenate features of different length we commonly tile the input tensors, concatenate the result and apply some nonlinearity. This is a common pattern across a variety of neural network architectures:
+Broadcasting allows us to perform implicit tiling which makes the code shorter, and more memory efficient, since we don’t need to store the result of the tiling operation. One neat place that this can be used is when combining features of varying length. In order to concatenate features of varying length we commonly tile the input tensors, concatenate the result and apply some nonlinearity. This is a common pattern across a variety of neural network architectures:
 
 ```python
 a = tf.random_uniform([5, 3, 5])
@@ -218,7 +218,7 @@ d = tf.nn.relu(pa + pb)
 In fact this piece of code is pretty general and can be applied to tensors of arbitrary shape as long as broadcasting between tensors is possible:
 
 ```python
-def tile_concat_dense(a, b, units, activation=tf.nn.relu):
+def merge(a, b, units, activation=tf.nn.relu):
     pa = tf.layers.dense(a, units, activation=None)
     pb = tf.layers.dense(b, units, activation=None)
     c = pa + pb
@@ -226,6 +226,7 @@ def tile_concat_dense(a, b, units, activation=tf.nn.relu):
         c = activation(c)
     return c
 ```
+A slightly more general form of this function is [included](#merge) in the cookbook.
 
 So far we discussed the good part of broadcasting. But what’s the ugly part you may ask? Implicit assumptions almost always make debugging harder to do. Consider the following example:
 
@@ -741,7 +742,7 @@ def input_fn():
 ```
 See [mnist.py](https://github.com/vahidk/EffectiveTensorflow/blob/master/code/framework/dataset/mnist.py) for an example of how to convert your data to TFRecords format.
 
-The framework also comes with a simple conv-net classifier ([convnet_classifier.py]((https://github.com/vahidk/EffectiveTensorflow/blob/master/code/framework/model/convnet_classifier.py))) that includes an example model and evaluation metric:
+The framework also comes with a simple convolutional network classifier in [convnet_classifier.py](https://github.com/vahidk/EffectiveTensorflow/blob/master/code/framework/model/convnet_classifier.py) that includes an example model and evaluation metric:
 
 ```python
 def model_fn(features, labels, mode, params):
