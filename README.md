@@ -854,8 +854,8 @@ def merge(tensors, units, activation=tf.nn.relu, name=None, **kwargs):
   non-linear transformation to the outcome.
 
   Example:
-    a = tf.zeros([1, m, d1])
-    b = tf.zeros([n, 1, d2])
+    a = tf.zeros([m, 1, d1])
+    b = tf.zeros([1, n, d2])
     c = merge([a, b], d3)  # shape of c would be [m, n, d3].
 
   Args:
