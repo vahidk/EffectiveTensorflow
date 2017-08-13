@@ -9,7 +9,7 @@ Table of Contents
 5. [Control flow operations: conditionals and loops](#control_flow)
 6. [Prototyping kernels and advanced visualization with Python ops](#python_ops)
 7. [Multi-GPU processing with data parallelism](#multi_gpu)
-8. [Building a neural network framework with learn API](#tf_learn)
+8. [Building a neural network training framework with learn API](#tf_learn)
 9. [Tensorflow Cookbook](#cookbook)
     - [Beam search](#beam_search)
     - [Merge](#merge)
@@ -685,11 +685,11 @@ learn = tf.contrib.learn
 def experiment_fn(run_config, hparams):
   estimator = learn.Estimator(
     model_fn=make_model_fn(), config=run_config, params=hparams)
-  eval_metrics = MODELS[FLAGS.model].eval_metrics_fn(hparams)
   return learn.Experiment(
     estimator=estimator,
     train_input_fn=make_input_fn(learn.ModeKeys.TRAIN, hparams),
-    eval_input_fn=make_input_fn(learn.ModeKeys.EVAL, hparams))
+    eval_input_fn=make_input_fn(learn.ModeKeys.EVAL, hparams),
+    eval_metrics=eval_metrics_fn(hparams))
 
 def main(unused_argv):
   run_config = learn.RunConfig(model_dir=FLAGS.output_dir)
@@ -740,6 +740,31 @@ def input_fn():
         reader=tf.TFRecordReader)
 ```
 See [mnist.py](https://github.com/vahidk/EffectiveTensorflow/blob/master/code/framework/dataset/mnist.py) for an example of how to convert your data to TFRecords format.
+
+The framework also comes with a simple conv-net classifier ([convnet_classifier.py]((https://github.com/vahidk/EffectiveTensorflow/blob/master/code/framework/model/convnet_classifier.py))) that includes an example model and evaluation metric:
+
+```python
+def model_fn(features, labels, mode, params):
+  images = features['image']
+  labels = labels['label']
+
+  predictions = ...
+  loss = ...
+
+  return {'predictions': predictions}, loss
+
+def eval_metrics_fn(params):
+  return {
+    'accuracy': tf.contrib.learn.MetricSpec(tf.metrics.accuracy)
+  }
+```
+MetricSpec connects our model to the given metric function (e.g. tf.metrics.accuracy). Since our label and predictions solely include a single tensor, everything automagically works. Although if your label/prediction includes multiple tensors, you need to explicitly specify which tensors you want to pass to the metric function:
+```python
+tf.contrib.learn.MetricSpec(
+  tf.metrics.accuracy,
+  label_key='label',
+  prediction_key='predictions')
+```
 
 And that's it! This is all you need to get started with Tensorflow learn API. I recommend to have a look at the [source code](https://github.com/vahidk/EffectiveTensorflow/tree/master/code/framework) and see the official python API to learn more about the learn API.
 
