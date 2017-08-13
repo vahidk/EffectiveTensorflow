@@ -12,7 +12,7 @@ Table of Contents
 8. [Building a neural network framework with learn API](#tf_learn)
 9. [Tensorflow Cookbook](#cookbook)
     - [Beam search](#beam_search)
-    - [Merge and transform](#merge_transform)
+    - [Merge](#merge)
     - [Entropy](#entropy)
 
 ## Tensorflow Basics
@@ -765,8 +765,10 @@ def log_prob_from_logits(logits, axis=-1):
 
 def batch_gather(tensor, indices):
   """Gather in batch from a tensor of arbitrary size.
+
   In pseduocode this module will produce the following:
   output[i] = tf.gather(tensor[i], indices[i])
+
   Args:
     tensor: Tensor of arbitrary size.
     indices: Vector of indices.
@@ -781,10 +783,10 @@ def batch_gather(tensor, indices):
   output = tf.gather(flat_first, indices + offset)
   return output
 
-
 def rnn_beam_search(update_fn, initial_state, sequence_length, beam_width,
-                    begin_token_id, end_token_id, scope='rnn'):
+                    begin_token_id, end_token_id, name='rnn'):
   """Beam-search decoder for recurrent models.
+
   Args:
     update_fn: Function to compute the next state and logits given the current
                state and ids.
@@ -793,7 +795,7 @@ def rnn_beam_search(update_fn, initial_state, sequence_length, beam_width,
     beam_width: Beam width.
     begin_token_id: Begin token id.
     end_token_id: End token id.
-    scope: Scope of the variables.
+    name: Scope of the variables.
   Returns:
     ids: Output indices.
     logprobs: Output log probabilities probabilities.
@@ -810,7 +812,7 @@ def rnn_beam_search(update_fn, initial_state, sequence_length, beam_width,
   mask = tf.ones([batch_size, beam_width], dtype=tf.float32)
 
   for i in range(sequence_length):
-    with tf.variable_scope(scope, reuse=True if i > 0 else None):
+    with tf.variable_scope(name, reuse=True if i > 0 else None):
 
       state, logits = update_fn(state, ids)
       logits = log_prob_from_logits(logits)
@@ -840,42 +842,33 @@ def rnn_beam_search(update_fn, initial_state, sequence_length, beam_width,
   return sel_ids, sel_sum_logprobs
 ```
 
-## Merge and transform <a name="merge_transform"></a>
+## Merge <a name="merge"></a>
 
 ```python
 import tensorflow as tf
 
-def dense_layers(tensor, sizes,
-                 activation=tf.nn.relu,
-                 linear_top_layer=False,
-                 dropout=0.0,
-                 name=None, **kwargs):
-  """Builds a stack of fully connected layers with optional dropout."""
-  with tf.variable_scope(name, default_name='dense_layers'):
-    for i, size in enumerate(sizes):
-      if i == len(sizes) - 1 and linear_top_layer:
-        activation = None
-      tensor = tf.layers.dropout(tensor, dropout)
-      tensor = tf.layers.dense(
-          tensor,
-          size,
-          name='dense_layer_%d' % i,
-          activation=activation,
-          **kwargs)
-  return tensor
+def merge(tensors, units, activation=tf.nn.relu, name=None, **kwargs):
+  """Merge features with broadcasting support.
 
-def merge_and_transform(tensors, sizes, activation=tf.nn.relu,
-                        linear_top_layer=False, dropout=0.,
-                        name=None, **kwargs):
-  """Merge and transform features with broadcasting support."""
-  with tf.variable_scope(name, default_name='tile_concat_dense'):
+  This operation concatenates multiple features of varying length and applies
+  non-linear transformation to the outcome.
+
+  Example:
+    a = np.zeros([1, m, d1])
+    b = np.zeros([n, 1, d2])
+    c = merge([a, b], d3)  # shape of c would be [m, n, d3].
+
+  Args:
+    tensors: A list of tensor with the same rank.
+    units: Number of units in the projection function.
+  """
+  with tf.variable_scope(name, default_name='merge'):
     # Apply linear projection to input tensors.
     projs = []
     for i, tensor in enumerate(tensors):
-      drop = tf.layers.dropout(tensor, dropout)
       proj = tf.layers.dense(
-          drop, sizes[0], activation=None,
-          scope='proj_%d' % i,
+          tensor, units, activation=None,
+          name='proj_%d' % i,
           **kwargs)
       projs.append(proj)
 
@@ -885,16 +878,9 @@ def merge_and_transform(tensors, sizes, activation=tf.nn.relu,
       result = result + proj
 
     # Apply nonlinearity.
-    if not (len(sizes) == 1 and linear_top_layer):
+    if activation:
       result = activation(result)
-
-    # Apply rest of the nonlinearities.
-    net = dense_layers(result, sizes[1:],
-                       activation=activation,
-                       dropout=dropout,
-                       linear_top_layer=linear_top_layer,
-                       **kwargs)
-  return net
+  return result
 ```
 
 ## Entropy <a name="entropy"></a>
@@ -903,10 +889,12 @@ def merge_and_transform(tensors, sizes, activation=tf.nn.relu,
 import tensorflow as tf
 
 def softmax(logits, dims=-1):
+  """Compute softmax over specified dimensions."""
   exp = tf.exp(logits - tf.reduce_max(logits, dims, keep_dims=True))
   return exp / tf.reduce_sum(exp, dims, keep_dims=True)
 
 def entropy(logits, dims=-1):
+  """Compute entropy over specified dimensions."""
   probs = softmax(logits, dims)
   nplogp = probs * (tf.reduce_logsumexp(logits, dims, keep_dims=True) - logits)
   return tf.reduce_sum(nplogp, dims)
