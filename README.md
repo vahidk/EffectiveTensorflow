@@ -19,7 +19,7 @@ Table of Contents
 
 ## Tensorflow Basics
 <a name="basics"></a>
-The most striking difference between Tensorflow and other numerical computation libraries such as numpy is that operations in Tensorflow are symbolic. This is a powerful concept that allows Tensorflow to do all sort of things (e.g. automatic differentiation) that are not possible with imperative libraries such as numpy. But it also comes at the cost of making it harder to grasp. Our attempt here is demystify Tensorflow and provide some guidelines and best practices for more effective use of Tensorflow.
+The most striking difference between Tensorflow and other numerical computation libraries such as numpy is that operations in Tensorflow are symbolic. This is a powerful concept that allows Tensorflow to do all sort of things (e.g. automatic differentiation) that are not possible with imperative libraries such as numpy - but it also comes at the cost of making it harder to grasp. We attempt here to demystify Tensorflow and provide some guidelines and best practices for more effective use of Tensorflow.
 
 Let's start with a simple example, we want to multiply two random matrices. First we look at an implementation done in numpy:
 ```python
