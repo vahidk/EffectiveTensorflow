@@ -45,8 +45,7 @@ z_val = sess.run(z)
 
 print(z_val)
 ```
-Unlike numpy that immediately performs the computation and copies the result to
-the output variable z, tensorflow only gives us a handle (of type Tensor) to a node in the graph that represents the result. If we try printing the value of z directly, we get something like this:
+Unlike numpy that immediately performs the computation and produces the result, tensorflow only gives us a handle (of type Tensor) to a node in the graph that represents the result. If we try printing the value of z directly, we get something like this:
 ```
 Tensor("MatMul:0", shape=(10, 10), dtype=float32)
 ```
@@ -56,7 +55,7 @@ Since both the inputs have a fully defined shape, tensorflow is able to infer th
 __Tip__: When using Jupyter notebook make sure to call tf.reset_default_graph() at the beginning to clear the symbolic graph before defining new nodes.
 ***
 
-To understand how powerful symbolic computation can be let's have a look at another example. Assume that we have samples from a curve (say f(x) = 5x^2 + 3) and we want to estimate f(x) without knowing its parameters. We define a parametric function g(x, w) = w0 x^2 + w1 x + w2, which is a function of the input x and latent parameters w, our goal is then to find the latent parameters such that g(x, w) ≈ f(x). This can be done by minimizing the following loss function: L(w) = (f(x) - g(x, w))^2. Although there's a closed form solution for this simple problem, we opt to use a more general approach that can be applied to any arbitrary differentiable function, and that is using stochastic gradient descent. We simply compute the average gradient of L(w) with respect to w over a set of sample points and move in the opposite direction.
+To understand how powerful symbolic computation can be let's have a look at another example. Assume that we have samples from a curve (say f(x) = 5x^2 + 3) and we want to estimate f(x) based on these samples. We define a parametric function g(x, w) = w0 x^2 + w1 x + w2, which is a function of the input x and latent parameters w, our goal is then to find the latent parameters such that g(x, w) ≈ f(x). This can be done by minimizing the following loss function: L(w) = &sum; (f(x) - g(x, w))^2. Although there's a closed form solution for this simple problem, we opt to use a more general approach that can be applied to any arbitrary differentiable function, and that is using stochastic gradient descent. We simply compute the average gradient of L(w) with respect to w over a set of sample points and move in the opposite direction.
 
 Here's how it can be done in Tensorflow:
 
@@ -79,7 +78,7 @@ f = tf.stack([tf.square(x), x, tf.ones_like(x)], 1)
 yhat = tf.squeeze(tf.matmul(f, w), 1)
 
 # The loss is defined to be the l2 distance between our estimate of y and its
-# true value. We also added a shrinkage term, tp ensure the resulting weights
+# true value. We also added a shrinkage term, to ensure the resulting weights
 # would be small.
 loss = tf.nn.l2_loss(yhat - y) + 0.1 * tf.nn.l2_loss(w)
 
@@ -130,16 +129,15 @@ dynamic_shape = tf.shape(a)
 
 The static shape of a tensor can be set with Tensor.set_shape() method:
 ```python
-a.set_shape([32, 128])
+a.set_shape([32, 128])  # static shape of a is [32, 128]
+a.set_shape([None, 128])  # first dimension of a is determined dynamically
 ```
-Use this function only if you know what you are doing, in practice it's safer to do dynamic reshaping with tf.reshape() op:
 
+You can reshape a given tensor dynamically using tf.reshape function:
 ```python
 a =  tf.reshape(a, [32, 128])
 ```
-
-If you feed 'a' with values that don't match the shape, you will get an InvalidArgumentError indicating that the
-number of values fed doesn't match the expected shape.
+Note that attempts to feed 'a' with values that don't match its shape, will raise InvalidArgumentError exception.
 
 It can be convenient to have a function that returns the static shape when available and dynamic shape when it's not. The following utility function does just that:
 ```python
@@ -408,7 +406,7 @@ c = c.stack()
 
 print(tf.Session().run(c))
 ```
-Tensorflow while loops and tensor arrays are essential tools for building complex recurrent neural networks. As an exercise try writing a [beam search using](https://en.wikipedia.org/wiki/Beam_search) tf.while_loops. Can you make it more efficient with tensor arrays?
+Tensorflow while loops and tensor arrays are essential tools for building complex recurrent neural networks. As an exercise try implementing [beam search](https://en.wikipedia.org/wiki/Beam_search) using tf.while_loops. Can you make it more efficient with tensor arrays?
 
 ## Prototyping kernels and advanced visualization with Python ops
 <a name="python_ops"></a>
@@ -569,7 +567,7 @@ You can replace the model with any function that takes a set of tensors as input
 
 Let's look at a slightly more practical example. We want to train a neural network on multiple GPUs. During training we not only need to compute the forward pass but also need to compute the backward pass (the gradients). But how can we parallelize the gradient computation? This turns out to be pretty easy.
 
-Recall from the first item that we wanted to fit a second degree curve to a set of samples. We reorganized the code a bit to have the bulk of the operations in the model function:
+Recall from the first item that we wanted to fit a second degree polynomial to a set of samples. We reorganized the code a bit to have the bulk of the operations in the model function:
 ```python
 import numpy as np
 import tensorflow as tf
