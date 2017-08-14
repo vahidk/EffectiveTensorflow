@@ -191,7 +191,7 @@ import tensorflow as tf
 
 a = tf.constant([[1., 2.], [3., 4.]])
 b = tf.constant([[1.], [2.]])
-# c = a + tf.tile(a, [1, 2])
+# c = a + tf.tile(b, [1, 2])
 c = a + b
 ```
 
