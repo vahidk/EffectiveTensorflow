@@ -79,7 +79,7 @@ f = tf.stack([tf.square(x), x, tf.ones_like(x)], 1)
 yhat = tf.squeeze(tf.matmul(f, w), 1)
 
 # The loss is defined to be the l2 distance between our estimate of y and its
-# true value. We also added a shrinkage term, tp ensure the resulting weights
+# true value. We also added a shrinkage term, to ensure the resulting weights
 # would be small.
 loss = tf.nn.l2_loss(yhat - y) + 0.1 * tf.nn.l2_loss(w)
 
