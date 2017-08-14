@@ -655,7 +655,7 @@ check_b = tf.assert_rank(b, 1)
 with tf.control_dependencies([check_a, check_b]):
     c = a + b  # c is a tensor of shape [2, 2]
 ```
-Remember that assertion nodes like other operations are part of the graph and if not evaluated would get pruned during Session.run(). So make sure to make explicit dependencies to assertion ops, to force Tensorflow to execute them.
+Remember that assertion nodes like other operations are part of the graph and if not evaluated would get pruned during Session.run(). So make sure to create explicit dependencies to assertion ops, to force Tensorflow to execute them.
 
 You can also use assertions to validate the value of tensors at runtime:
 ```python
@@ -665,12 +665,12 @@ See the official docs for a full list of assertion ops.
 
 ### Logging tensor values with tf.Print
 
-Another useful built-in function is tf.Print which logs the given tensors to the standard error:
+Another useful built-in function for debugging is tf.Print which logs the given tensors to the standard error:
 
 ```python
 input_copy = tf.Print(input, tensors_to_print_list)
 ```
-Note that tf.Print returns a copy of its first argument as output. One way to force tf.Print to run is to pass its output to another op that gets executed. For example if we want to print value of tensors a and b before adding them we could do something like this:
+Note that tf.Print returns a copy of its first argument as output. One way to force tf.Print to run is to pass its output to another op that gets executed. For example if we want to print the value of tensors a and b before adding them we could do something like this:
 ```python
 a = ...
 b = ...
@@ -682,7 +682,7 @@ Alternatively we could manually define a control dependency.
 
 ### Check your gradients with tf.compute_gradient_error
 
-__Not__ all the operations in Tensorflow come with gradients, and it's possible to write a non-automatic differentiable graph in Tensorflow without knowing.
+__Not__ all the operations in Tensorflow come with gradients, and it's easy to unintentionally build graphs for which Tensorflow can not compute the gradients.
 
 Let's look at an example:
 ```python

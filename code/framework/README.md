@@ -25,7 +25,7 @@ To train an mnist classification model run:
 python -m main --model=convnet_classifier --dataset=mnist
 ```
 
-To visualize the training logs in Tensorboard run:
+To visualize the training logs on Tensorboard run:
 ```
 tensorboard --logdir=output
 ```
