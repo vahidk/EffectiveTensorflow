@@ -1,25 +1,25 @@
-# Effective Tensorflow
+# Effective TensorFlow
 
 Table of Contents
 =================
-1.  [Tensorflow Basics](#basics)
+1.  [TensorFlow Basics](#basics)
 2.  [Understanding static and dynamic shapes](#shapes)
 3.  [Broadcasting the good and the ugly](#broadcast)
 4.  [Understanding order of execution and control dependencies](#control_deps)
 5.  [Control flow operations: conditionals and loops](#control_flow)
 6.  [Prototyping kernels and advanced visualization with Python ops](#python_ops)
 7.  [Multi-GPU processing with data parallelism](#multi_gpu)
-8.  [Debugging Tensorflow models](#debug)
+8.  [Debugging TensorFlow models](#debug)
 9.  [Building a neural network training framework with learn API](#tf_learn)
-10. [Tensorflow Cookbook](#cookbook)
+10. [TensorFlow Cookbook](#cookbook)
     - [Beam search](#beam_search)
     - [Merge](#merge)
     - [Entropy](#entropy)
     - [Make parallel](#make_parallel)
 
-## Tensorflow Basics
+## TensorFlow Basics
 <a name="basics"></a>
-The most striking difference between Tensorflow and other numerical computation libraries such as numpy is that operations in Tensorflow are symbolic. This is a powerful concept that allows Tensorflow to do all sort of things (e.g. automatic differentiation) that are not possible with imperative libraries such as numpy - but it also comes at the cost of making it harder to grasp. We attempt here to demystify Tensorflow and provide some guidelines and best practices for more effective use of Tensorflow.
+The most striking difference between TensorFlow and other numerical computation libraries such as numpy is that operations in TensorFlow are symbolic. This is a powerful concept that allows TensorFlow to do all sort of things (e.g. automatic differentiation) that are not possible with imperative libraries such as numpy. But it also comes at the cost of making it harder to grasp. Our attempt here is to demystify TensorFlow and provide some guidelines and best practices for more effective use of TensorFlow.
 
 Let's start with a simple example, we want to multiply two random matrices. First we look at an implementation done in numpy:
 ```python
@@ -32,7 +32,7 @@ z = np.dot(x, y)
 print(z)
 ```
 
-Now we perform the exact same computation this time in Tensorflow:
+Now we perform the exact same computation this time in TensorFlow:
 ```python
 import tensorflow as tf
 
@@ -57,13 +57,13 @@ __Tip__: When using Jupyter notebook make sure to call tf.reset_default_graph() 
 
 To understand how powerful symbolic computation can be let's have a look at another example. Assume that we have samples from a curve (say f(x) = 5x^2 + 3) and we want to estimate f(x) based on these samples. We define a parametric function g(x, w) = w0 x^2 + w1 x + w2, which is a function of the input x and latent parameters w, our goal is then to find the latent parameters such that g(x, w) ≈ f(x). This can be done by minimizing the following loss function: L(w) = &sum; (f(x) - g(x, w))^2. Although there's a closed form solution for this simple problem, we opt to use a more general approach that can be applied to any arbitrary differentiable function, and that is using stochastic gradient descent. We simply compute the average gradient of L(w) with respect to w over a set of sample points and move in the opposite direction.
 
-Here's how it can be done in Tensorflow:
+Here's how it can be done in TensorFlow:
 
 ```python
 import numpy as np
 import tensorflow as tf
 
-# Placeholders are used to feed values from python to Tensorflow ops. We define
+# Placeholders are used to feed values from python to TensorFlow ops. We define
 # two placeholders, one for input feature x, and one for output y.
 x = tf.placeholder(tf.float32)
 y = tf.placeholder(tf.float32)
@@ -105,11 +105,11 @@ By running this piece of code you should see a result close to this:
 ```
 Which is a relatively close approximation to our parameters.
 
-This is just tip of the iceberg for what Tensorflow can do. Many problems such a optimizing large neural networks with millions of parameters can be implemented efficiently in Tensorflow in just a few lines of code. Tensorflow takes care of scaling across multiple devices, and threads, and supports a variety of platforms.
+This is just tip of the iceberg for what TensorFlow can do. Many problems such a optimizing large neural networks with millions of parameters can be implemented efficiently in TensorFlow in just a few lines of code. TensorFlow takes care of scaling across multiple devices, and threads, and supports a variety of platforms.
 
 ## Understanding static and dynamic shapes
 <a name="shapes"></a>
-Tensors in Tensorflow have a static shape attribute which is determined during graph construction. The static shape may be underspecified. For example we might define a float32 tensor of shape [None, 128]:
+Tensors in TensorFlow have a static shape attribute which is determined during graph construction. The static shape may be underspecified. For example we might define a float32 tensor of shape [None, 128]:
 ```python
 import tensorflow as tf
 
@@ -184,7 +184,7 @@ b = tf.reshape(b, [0, [1, 2]])
 
 ## Broadcasting the good and the ugly
 <a name="broadcast"></a>
-Tensorflow supports broadcasting elementwise operations. Normally when you want to perform operations like addition and multiplication, you need to make sure that shapes of the operands match, e.g. you can’t add a tensor of shape [3, 2] to a tensor of shape [3, 4]. But there’s a special case and that’s when you have a singular dimension. Tensorflow implicitly tiles the tensor across its singular dimensions to match the shape of the other operand. So it’s valid to add a tensor of shape [3, 2] to a tensor of shape [3, 1]
+TensorFlow supports broadcasting elementwise operations. Normally when you want to perform operations like addition and multiplication, you need to make sure that shapes of the operands match, e.g. you can’t add a tensor of shape [3, 2] to a tensor of shape [3, 4]. But there’s a special case and that’s when you have a singular dimension. TensorFlow implicitly tiles the tensor across its singular dimensions to match the shape of the other operand. So it’s valid to add a tensor of shape [3, 2] to a tensor of shape [3, 1]
 
 ```python
 import tensorflow as tf
@@ -236,7 +236,7 @@ b = tf.constant([1., 2.])
 c = tf.reduce_sum(a + b)
 ```
 
-What do you think would the value of c would after evaluation? If you guessed 6, that’s wrong. It’s going to be 12. This is because when rank of two tensors don’t match, Tensorflow automatically expands the first dimension of the tensor with lower rank before the elementwise operation, so the result of addition would be [[2, 3], [3, 4]], and the reducing over all parameters would give us 12.
+What do you think would the value of c would after evaluation? If you guessed 6, that’s wrong. It’s going to be 12. This is because when rank of two tensors don’t match, TensorFlow automatically expands the first dimension of the tensor with lower rank before the elementwise operation, so the result of addition would be [[2, 3], [3, 4]], and the reducing over all parameters would give us 12.
 
 The way to avoid this problem is to be as explicit as possible. Had we specified which dimension we would want to reduce across, catching this bug would have been much easier:
 
@@ -250,7 +250,7 @@ Here the value of c would be [5, 7], and we immediately would guess based on the
 
 ## Understanding order of execution and control dependencies
 <a name="control_deps"></a>
-As we discussed in the first item, Tensorflow doesn't immediately run the operations that are defined but rather creates corresponding nodes in a graph that can be evaluated with Session.run() method. This also enables Tensorflow to do optimizations at run time to determine the optimal order of execution and possible trimming of unused nodes. If you only have tf.Tensors in your graph you don't need to worry about dependencies but you most probably have tf.Variables too, and tf.Variables make things much more difficult. My advice to is to only use Variables if Tensors don't do the job. This might not make a lot of sense to you now, so let's start with an example.
+As we discussed in the first item, TensorFlow doesn't immediately run the operations that are defined but rather creates corresponding nodes in a graph that can be evaluated with Session.run() method. This also enables TensorFlow to do optimizations at run time to determine the optimal order of execution and possible trimming of unused nodes. If you only have tf.Tensors in your graph you don't need to worry about dependencies but you most probably have tf.Variables too, and tf.Variables make things much more difficult. My advice to is to only use Variables if Tensors don't do the job. This might not make a lot of sense to you now, so let's start with an example.
 
 ```python
 import tensorflow as tf
@@ -265,7 +265,7 @@ tf.Session().run(a)
 Evaluating "a" will return the value 3 as expected.  Note that here we are creating 3 tensors, two constant tensors and another tensor that stores the result of the addition. Note that you can't overwrite the value of a tensor. If you want to modify it you have to create a new tensor. As we did here.
 
 ***
-__TIP__: If you don't define a new graph, Tensorflow automatically creates a graph for you by default. You can use tf.get_default_graph() to get a handle to the graph. You can then inspect the graph, for example by printing all its tensors:
+__TIP__: If you don't define a new graph, TensorFlow automatically creates a graph for you by default. You can use tf.get_default_graph() to get a handle to the graph. You can then inspect the graph, for example by printing all its tensors:
 ```python
 print(tf.contrib.graph_editor.get_tensors(tf.get_default_graph()))
 ```
@@ -298,7 +298,7 @@ for i in range(10):
 ```
 Note that the tensor c here won't have a deterministic value. This value might be 3 or 7 depending on whether addition or assignment gets executed first.
 
-You should note that the order that you define ops in your code doesn't matter to Tensorflow runtime. The only thing that matters is the control dependencies. Control dependencies for tensors are straightforward. Every time you use a tensor in an operation that op will define an implicit dependency to that tensor. But things get complicated with variables because they can take many values.
+You should note that the order that you define ops in your code doesn't matter to TensorFlow runtime. The only thing that matters is the control dependencies. Control dependencies for tensors are straightforward. Every time you use a tensor in an operation that op will define an implicit dependency to that tensor. But things get complicated with variables because they can take many values.
 
 When dealing with variables, you may need to explicitly define dependencies using tf.control_dependencies() as follows:
 ```python
@@ -333,7 +333,7 @@ print(tf.Session().run(x))
 ```
 Since the predicate is True in this case, the output would be the result of the addition, which is 3.
 
-Most of the times when using Tensorflow you are using large tensors and want to perform operations in batch. A related conditional operation is tf.where, which like tf.cond takes a predicate, but selects the output based on the condition in batch.
+Most of the times when using TensorFlow you are using large tensors and want to perform operations in batch. A related conditional operation is tf.where, which like tf.cond takes a predicate, but selects the output based on the condition in batch.
 ```python
 a = tf.constant([1, 1])
 b = tf.constant([2, 2])
@@ -346,7 +346,7 @@ print(tf.Session().run(x))
 ```
 This will return [3, 2].
 
-Another widely used control flow operation is tf.while_loop. It allows building dynamic loops in Tensorflow that operate on sequences of variable length. Let's see how we can generate Fibonacci sequence with tf.while_loops:
+Another widely used control flow operation is tf.while_loop. It allows building dynamic loops in TensorFlow that operate on sequences of variable length. Let's see how we can generate Fibonacci sequence with tf.while_loops:
 ```python
 n = tf.constant(5)
 
@@ -376,7 +376,7 @@ i, a, b, c = tf.while_loop(cond, body, (2, 1, 1, tf.constant([1, 1])))
 
 print(tf.Session().run(c))
 ```
-Now if you try running this, Tensorflow will complain that the shape of the the fourth loop variable is changing. So you must make that explicit that it's intentional:
+Now if you try running this, TensorFlow will complain that the shape of the the fourth loop variable is changing. So you must make that explicit that it's intentional:
 ```
 i, a, b, c = tf.while_loop(
     cond, body, (2, 1, 1, tf.constant([1, 1])),
@@ -385,7 +385,7 @@ i, a, b, c = tf.while_loop(
                       tf.TensorShape([]),
                       tf.TensorShape([None])))
 ```
-This is not only getting ugly, but is also somewhat inefficient. Note that we are building a lot of intermediary tensors that we don't use. Tensorflow has a better solution for this kind of growing arrays. Meet tf.TensorArray. Let's do the same thing this time with tensor arrays:
+This is not only getting ugly, but is also somewhat inefficient. Note that we are building a lot of intermediary tensors that we don't use. TensorFlow has a better solution for this kind of growing arrays. Meet tf.TensorArray. Let's do the same thing this time with tensor arrays:
 ```python
 n = tf.constant(5)
 
@@ -406,13 +406,13 @@ c = c.stack()
 
 print(tf.Session().run(c))
 ```
-Tensorflow while loops and tensor arrays are essential tools for building complex recurrent neural networks. As an exercise try implementing [beam search](https://en.wikipedia.org/wiki/Beam_search) using tf.while_loops. Can you make it more efficient with tensor arrays?
+TensorFlow while loops and tensor arrays are essential tools for building complex recurrent neural networks. As an exercise try implementing [beam search](https://en.wikipedia.org/wiki/Beam_search) using tf.while_loops. Can you make it more efficient with tensor arrays?
 
 ## Prototyping kernels and advanced visualization with Python ops
 <a name="python_ops"></a>
-Operation kernels in Tensorflow are entirely written in C++ for efficiency. But writing a Tensorflow kernel in C++ can be quite a pain. So, before spending hours implementing your kernel you may want to prototype something quickly, however inefficient. With tf.py_func() you can turn any piece of python code to a Tensorflow operation.
+Operation kernels in TensorFlow are entirely written in C++ for efficiency. But writing a TensorFlow kernel in C++ can be quite a pain. So, before spending hours implementing your kernel you may want to prototype something quickly, however inefficient. With tf.py_func() you can turn any piece of python code to a TensorFlow operation.
 
-For example this is how you can implement a simple ReLU nonlinearity kernel in Tensorflow as a python op:
+For example this is how you can implement a simple ReLU nonlinearity kernel in TensorFlow as a python op:
 ```python
 import numpy as np
 import tensorflow as tf
@@ -427,7 +427,7 @@ def relu(inputs):
     def _relu_grad(x):
         return np.float32(x > 0)
 
-    # An adapter that defines a gradient op compatible with Tensorflow
+    # An adapter that defines a gradient op compatible with TensorFlow
     def _relu_grad_op(op, grad):
         x = op.inputs[0]
         x_grad = grad * tf.py_func(_relu_grad, [x], tf.float32)
@@ -444,7 +444,7 @@ def relu(inputs):
     return output
 ```
 
-To verify that the gradients are correct you can use Tensorflow's gradient checker:
+To verify that the gradients are correct you can use TensorFlow's gradient checker:
 ```python
 x = tf.random_normal([10])
 y = relu(x * x)
@@ -457,7 +457,7 @@ compute_gradient_error() computes the gradient numerically and returns the diffe
 
 Note that this implementation is pretty inefficient, and is only useful for prototyping, since the python code is not parallelizable and won't run on GPU. Once you verified your idea, you definitely would want to write it as a C++ kernel.
 
-In practice we commonly use python ops to do visualization on Tensorboard. Consider the case that you are building an image classification model and want to visualize your model predictions during training. Tensorflow allows visualizing images with tf.summary.image() function:
+In practice we commonly use python ops to do visualization on Tensorboard. Consider the case that you are building an image classification model and want to visualize your model predictions during training. TensorFlow allows visualizing images with tf.summary.image() function:
 ```python
 image = tf.placeholder(tf.float32)
 tf.summary.image("image", image)
@@ -507,7 +507,7 @@ Note that since summaries are usually only evaluated once in a while (not per st
 
 ## Multi-GPU processing with data parallelism
 <a name="multi_gpu"></a>
- If you write your software in a language like C++ for a single cpu core, making it run on multiple GPUs in parallel would require rewriting the software from scratch. But this is not the case with Tensorflow. Because of its symbolic nature, tensorflow can hide all that complexity, making it effortless to scale your program across many CPUs and GPUs.
+ If you write your software in a language like C++ for a single cpu core, making it run on multiple GPUs in parallel would require rewriting the software from scratch. But this is not the case with TensorFlow. Because of its symbolic nature, tensorflow can hide all that complexity, making it effortless to scale your program across many CPUs and GPUs.
 
  Let's start with the simple example of adding two vectors on CPU:
  ```python
@@ -615,11 +615,11 @@ train_op = tf.train.AdamOptimizer(0.1).minimize(
 
 The only thing that we need to change to parallelize backpropagation of gradients is to set the colocate_gradients_with_ops flag to true. This ensures that gradient ops run on the same device as the original op.
 
-## Debugging Tensorflow models
+## Debugging TensorFlow models
 <a name="debug"></a>
-Symbolic nature of Tensorflow makes it relatively more difficult to debug Tensorflow code compared to regular python code. Here we introduce a number of tools included with Tensorflow that make debugging much easier.
+Symbolic nature of TensorFlow makes it relatively more difficult to debug TensorFlow code compared to regular python code. Here we introduce a number of tools included with TensorFlow that make debugging much easier.
 
-Probably the most common error one can make when using Tensorflow is passing Tensors of wrong shape to ops. Many Tensorflow ops can operate on tensors of different ranks and shapes. This can be convenient when using the API, but may lead to extra headache when things go wrong.
+Probably the most common error one can make when using TensorFlow is passing Tensors of wrong shape to ops. Many TensorFlow ops can operate on tensors of different ranks and shapes. This can be convenient when using the API, but may lead to extra headache when things go wrong.
 
 For example, consider the tf.matmul op, it can multiply two matrices:
 ```python
@@ -653,7 +653,7 @@ check_b = tf.assert_rank(b, 1)
 with tf.control_dependencies([check_a, check_b]):
     c = a + b  # c is a tensor of shape [2, 2]
 ```
-Remember that assertion nodes like other operations are part of the graph and if not evaluated would get pruned during Session.run(). So make sure to create explicit dependencies to assertion ops, to force Tensorflow to execute them.
+Remember that assertion nodes like other operations are part of the graph and if not evaluated would get pruned during Session.run(). So make sure to create explicit dependencies to assertion ops, to force TensorFlow to execute them.
 
 You can also use assertions to validate the value of tensors at runtime:
 ```python
@@ -680,7 +680,7 @@ Alternatively we could manually define a control dependency.
 
 ### Check your gradients with tf.compute_gradient_error
 
-__Not__ all the operations in Tensorflow come with gradients, and it's easy to unintentionally build graphs for which Tensorflow can not compute the gradients.
+__Not__ all the operations in TensorFlow come with gradients, and it's easy to unintentionally build graphs for which TensorFlow can not compute the gradients.
 
 Let's look at an example:
 ```python
@@ -709,7 +709,7 @@ We are using tf.nn.softmax_cross_entropy_with_logits to define entropy over a ca
 ```
 It turns out tf.nn.softmax_cross_entropy_with_logits has undefined gradients with respect to labels! But how may we spot this if we didn't know?
 
-Fortunately for us Tensorflow comes with a numerical differentiator that can be used to find symbolic gradient errors. Let's see how we can use it:
+Fortunately for us TensorFlow comes with a numerical differentiator that can be used to find symbolic gradient errors. Let's see how we can use it:
 
 ```python
 with tf.Session():
@@ -747,13 +747,13 @@ Now if you run the optimizer again with the correct version you can see the fina
 ```
 which are exactly what we wanted.
 
-Tensorflow summaries, and tfdbg (TensorFlow Debugger) are other tools that can be used for debugging. Please refer to the official docs to learn more.
+TensorFlow summaries, and tfdbg (TensorFlow Debugger) are other tools that can be used for debugging. Please refer to the official docs to learn more.
 
 ## Building a neural network training framework with learn API
 <a name="tf_learn"></a>
-For simplicity, in most of the examples here we manually create sessions and we don't care about saving and loading checkpoints but this is not how we usually do things in practice. You most probably want to use the learn API to take care of session management and logging. We provide a simple but practical framework in the [code/framework](https://github.com/vahidk/EffectiveTensorflow/tree/master/code/framework) directory for training neural networks using Tensorflow. In this item we explain how this framework works.
+For simplicity, in most of the examples here we manually create sessions and we don't care about saving and loading checkpoints but this is not how we usually do things in practice. You most probably want to use the learn API to take care of session management and logging. We provide a simple but practical framework in the [code/framework](https://github.com/vahidk/EffectiveTensorFlow/tree/master/code/framework) directory for training neural networks using TensorFlow. In this item we explain how this framework works.
 
-When experimenting with neural network models you usually have a training/test split. You want to train your model on the training set, and once in a while evaluate it on test set and compute some metrics. You also need to store the model parameters as a checkpoint, and ideally you want to be able to stop and resume training. Tensorflow's learn API is designed to make this job easier, letting us focus on developing the actual model.
+When experimenting with neural network models you usually have a training/test split. You want to train your model on the training set, and once in a while evaluate it on test set and compute some metrics. You also need to store the model parameters as a checkpoint, and ideally you want to be able to stop and resume training. TensorFlow's learn API is designed to make this job easier, letting us focus on developing the actual model.
 
 The most basic way of using tf.learn API is to use tf.Estimator object directly. You need to define a model function that defines a loss function, a train op and one or a set of predictions:
 ```python
@@ -791,7 +791,7 @@ metrics = { 'accuracy': tf.metrics.accuracy }
 estimator.evaluate(input_fn=input_fn, metrics=metrics)
 ```
 
-Estimator object might be good enough for simple cases, but Tensorflow provides an even higher level object called Experiment which provides some additional useful functionality. Creating an experiment object is very easy:
+Estimator object might be good enough for simple cases, but TensorFlow provides an even higher level object called Experiment which provides some additional useful functionality. Creating an experiment object is very easy:
 
 ```python
 experiment = tf.contrib.learn.Experiment(
@@ -874,9 +874,9 @@ def input_fn():
         features=features,
         reader=tf.TFRecordReader)
 ```
-See [mnist.py](https://github.com/vahidk/EffectiveTensorflow/blob/master/code/framework/dataset/mnist.py) for an example of how to convert your data to TFRecords format.
+See [mnist.py](https://github.com/vahidk/EffectiveTensorFlow/blob/master/code/framework/dataset/mnist.py) for an example of how to convert your data to TFRecords format.
 
-The framework also comes with a simple convolutional network classifier in [convnet_classifier.py](https://github.com/vahidk/EffectiveTensorflow/blob/master/code/framework/model/convnet_classifier.py) that includes an example model and evaluation metric:
+The framework also comes with a simple convolutional network classifier in [convnet_classifier.py](https://github.com/vahidk/EffectiveTensorFlow/blob/master/code/framework/model/convnet_classifier.py) that includes an example model and evaluation metric:
 
 ```python
 def model_fn(features, labels, mode, params):
@@ -901,11 +901,11 @@ tf.contrib.learn.MetricSpec(
   prediction_key='predictions')
 ```
 
-And that's it! This is all you need to get started with Tensorflow learn API. I recommend to have a look at the [source code](https://github.com/vahidk/EffectiveTensorflow/tree/master/code/framework) and see the official python API to learn more about the learn API.
+And that's it! This is all you need to get started with TensorFlow learn API. I recommend to have a look at the [source code](https://github.com/vahidk/EffectiveTensorFlow/tree/master/code/framework) and see the official python API to learn more about the learn API.
 
-## Tensorflow Cookbook
+## TensorFlow Cookbook
 <a name="cookbook"></a>
-This section includes implementation of a set of common operations in Tensorflow.
+This section includes implementation of a set of common operations in TensorFlow.
 
 ### Beam Search <a name="beam_search"></a>
 ```python
