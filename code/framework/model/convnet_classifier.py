@@ -11,8 +11,7 @@ from common import summary
 FLAGS = tf.flags.FLAGS
 
 HPARAMS = {
-  'drop_rate': 0.5,
-  'crop_margin': 8,
+  'drop_rate': 0.5
 }
 
 
@@ -40,7 +39,7 @@ def model_fn(features, labels, mode, params):
   loss = tf.losses.sparse_softmax_cross_entropy(
     labels=labels, logits=logits)
 
-  summary.labeled_image("images", images, predictions)
+  summary.labeled_image('images', images, predictions)
 
   return {'predictions': predictions}, loss
 
