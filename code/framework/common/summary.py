@@ -1,5 +1,9 @@
 """Utility functions for visualization on tensorboard."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import io
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,6 +13,7 @@ import tensorflow as tf
 
 def labeled_image(name, images, labels, max_outputs=3, flip_vertical=False,
                   color='pink', font_size=15):
+    """Writes a summary visualizing given images and corresponding labels."""
     def _visualize_image(image, label):
         # Do the actual drawing in python
         fig = plt.figure(figsize=(3, 3), dpi=80)

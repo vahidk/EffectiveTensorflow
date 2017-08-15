@@ -1,3 +1,5 @@
+"""Common TensorFlow ops."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -60,6 +62,7 @@ def conv_layers(tensor,
                 activation=tf.nn.relu,
                 drop_rate=0.0,
                 **kwargs):
+  """Builds a stack of convolutional layers with dropout and max pooling."""
   for fs, ks, ps in zip(filters, kernels, pools):
     tensor = tf.layers.dropout(tensor, drop_rate)
     tensor = tf.layers.conv2d(
@@ -76,6 +79,7 @@ def conv_layers(tensor,
 
 
 def create_optimizer(optimizer, learning_rate, decay_steps=None, **kwargs):
+  """Create an optimizer object."""
   global_step = tf.train.get_or_create_global_step()
 
   if decay_steps:
@@ -88,6 +92,7 @@ def create_optimizer(optimizer, learning_rate, decay_steps=None, **kwargs):
 
 
 def average_gradients(tower_grads):
+  """Compute average gradients."""
   average_grads = []
   for grad_and_vars in zip(*tower_grads):
     grads = [g for g, _ in grad_and_vars]

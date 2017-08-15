@@ -1,3 +1,5 @@
+"""Simple convolutional neural network classififer."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -16,6 +18,7 @@ HPARAMS = {
 
 
 def model_fn(features, labels, mode, params):
+  """CNN classifier model."""
   images = features['image']
   labels = labels['label']
 
@@ -45,6 +48,7 @@ def model_fn(features, labels, mode, params):
 
 
 def eval_metrics_fn(params):
+  """Eval metrics."""
   metrics_dict = {}
   metrics_dict['accuracy'] = tf.contrib.learn.MetricSpec(tf.metrics.accuracy)
   return metrics_dict

@@ -1,3 +1,5 @@
+"""Main module."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -41,6 +43,7 @@ HPARAMS = {
 }
 
 def get_hparams():
+  """Aggregates and returns hyper parameters."""
   hparams = HPARAMS
   hparams.update(DATASETS[FLAGS.dataset].HPARAMS)
   hparams.update(MODELS[FLAGS.model].HPARAMS)
@@ -52,6 +55,7 @@ def get_hparams():
 
 
 def make_input_fn(mode, params):
+  """Returns an input function to read the dataset."""
   def _input_fn():
     with tf.device(tf.DeviceSpec(device_type='CPU', device_index=0)):
       dataset = DATASETS[FLAGS.dataset]
@@ -71,6 +75,7 @@ def make_input_fn(mode, params):
 
 
 def make_model_fn():
+  """Returns a model function."""
   def _model_fn(features, labels, mode, params):
     model_fn = MODELS[FLAGS.model].model_fn
 
@@ -136,6 +141,7 @@ def make_model_fn():
 
 
 def experiment_fn(run_config, hparams):
+  """Constructs an experiment object."""
   estimator = learn.Estimator(
     model_fn=make_model_fn(), config=run_config, params=hparams)
   eval_metrics = MODELS[FLAGS.model].eval_metrics_fn(hparams)
@@ -149,6 +155,7 @@ def experiment_fn(run_config, hparams):
 
 
 def main(unused_argv):
+  """Main entry point."""
   if FLAGS.output_dir:
     model_dir = FLAGS.output_dir
   else:
