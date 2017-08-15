@@ -8,6 +8,8 @@ import collections
 import tensorflow as tf
 
 from common import ops
+import dataset.cifar10
+import dataset.cifar100
 import dataset.mnist
 import model.convnet_classifier
 
@@ -32,7 +34,9 @@ MODELS = {
 }
 
 DATASETS = {
-  'mnist': dataset.mnist
+  'cifar10': dataset.cifar10,
+  'cifar100': dataset.cifar100,
+  'mnist': dataset.mnist,
 }
 
 HPARAMS = {
