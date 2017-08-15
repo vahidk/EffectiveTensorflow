@@ -151,8 +151,8 @@ def get_shape(tensor):
 
 Now imagine we want to convert a Tensor of rank 3 to a tensor of rank 2 by collapsing the second and third dimensions into one. We can use our get_shape() function to do that:
 ```python
-b = placeholder(tf.float32, [None, 10, 32])
-shape = get_shape(tensor)
+b = tf.placeholder(tf.float32, [None, 10, 32])
+shape = get_shape(b)
 b = tf.reshape(b, [shape[0], shape[1] * shape[2]])
 ```
 Note that this works whether the shapes are statically specified or not.
@@ -178,8 +178,8 @@ def reshape(tensor, dims_list):
 
 Then collapsing the second dimension becomes very easy:
 ```python
-b = placeholder(tf.float32, [None, 10, 32])
-b = tf.reshape(b, [0, [1, 2]])
+b = tf.placeholder(tf.float32, [None, 10, 32])
+b = reshape(b, [0, [1, 2]])
 ```
 
 ## Broadcasting the good and the ugly
