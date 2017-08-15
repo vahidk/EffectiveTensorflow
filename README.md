@@ -118,7 +118,6 @@ a = tf.placeholder(tf.float32, [None, 128])
 This means that the first dimension can be of any size and will be determined dynamically during Session.run(). You can query the static shape of a Tensor as follows:
 
 ```python
-static_shape = a.shape  # returns TensorShape([Dimension(None), Dimension(128)])
 static_shape = a.shape.as_list()  # returns [None, 128]
 ```
 
@@ -137,7 +136,6 @@ You can reshape a given tensor dynamically using tf.reshape function:
 ```python
 a =  tf.reshape(a, [32, 128])
 ```
-Note that attempts to feed 'a' with values that don't match its shape, will raise InvalidArgumentError exception.
 
 It can be convenient to have a function that returns the static shape when available and dynamic shape when it's not. The following utility function does just that:
 ```python
