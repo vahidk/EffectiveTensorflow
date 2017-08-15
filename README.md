@@ -703,7 +703,7 @@ for i in range(10000):
 
 print(sess.run(tf.nn.softmax(w)))
 ```
-We are using tf.nn.softmax_cross_entropy_with_logits to define entropy over a categorical distribution. We then use Adam optimizer to find the weights with maximum entropy. If you have passed a course on information theory, you would know that uniform distribution contains maximum amount of information. So you would expect for the result to be [0.2, 0.2, 0.2, 0.2, 0.2]. But if you run this you may get unexpected results like this:
+We are using tf.nn.softmax_cross_entropy_with_logits to define entropy over a categorical distribution. We then use Adam optimizer to find the weights with maximum entropy. If you have passed a course on information theory, you would know that uniform distribution contains maximum entropy. So you would expect for the result to be [0.2, 0.2, 0.2, 0.2, 0.2]. But if you run this you may get unexpected results like this:
 ```
 [ 0.34081486  0.24287023  0.23465775  0.08935683  0.09230034]
 ```
@@ -729,8 +729,7 @@ def entropy(logits, dim=-1):
     return tf.reduce_sum(nplogp, dim)
 
 w = tf.get_variable('w', shape=[5])
-y = -non_differentiable_entropy(w)
-# y = -entropy(w)
+y = -entropy(w)
 
 print(w.get_shape())
 print(y.get_shape())
