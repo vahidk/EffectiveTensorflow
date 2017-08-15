@@ -1,4 +1,4 @@
-"""Mnist dataset preprocessing and specifications."""
+"""Cifar10 dataset preprocessing and specifications."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -57,7 +57,7 @@ def map_features(features):
 
 
 def _download_data():
-  """Download the MNIST dataset."""
+  """Download the cifar dataset."""
   if not os.path.exists(LOCAL_DIR):
     os.makedirs(LOCAL_DIR)
   if not os.path.exists(LOCAL_DIR + ARCHIVE_NAME):
@@ -71,7 +71,7 @@ def _download_data():
 
 
 def _image_iterator(split):
-  """An iterator that reads and returns images and labels from MNIST."""
+  """An iterator that reads and returns images and labels from cifar."""
   batches = {
     tf.estimator.ModeKeys.TRAIN: TRAIN_BATCHES,
     tf.estimator.ModeKeys.EVAL: TEST_BATCHES
@@ -129,7 +129,7 @@ def _visulize_data(split=tf.estimator.ModeKeys.TRAIN):
 
 if __name__ == '__main__':
   if len(sys.argv) != 2:
-    print('Usage: python dataset.mnist <convert|visualize>')
+    print('Usage: python dataset.cifar10 <convert|visualize>')
     sys.exit(1)
 
   if sys.argv[1] == 'convert':
