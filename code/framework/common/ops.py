@@ -66,12 +66,12 @@ def conv_layers(tensor,
   for fs, ks, ps in zip(filters, kernels, pools):
     tensor = tf.layers.dropout(tensor, drop_rate)
     tensor = tf.layers.conv2d(
-        tensor,
-        filters=fs,
-        kernel_size=ks,
-        padding=padding,
-        activation=activation,
-        **kwargs)
+      tensor,
+      filters=fs,
+      kernel_size=ks,
+      padding=padding,
+      activation=activation,
+      **kwargs)
     if ps and ps > 1:
       tensor = tf.layers.max_pooling2d(
         inputs=tensor, pool_size=ps, strides=ps, padding=padding)
