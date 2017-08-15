@@ -137,7 +137,7 @@ You can reshape a given tensor dynamically using tf.reshape function:
 ```python
 a =  tf.reshape(a, [32, 128])
 ```
-Note that attempts to feed 'a' with values that don't match its shape, will raise InvalidArgumentError exception.
+Note that attempts to feed 'a' with tensors with a different total number of elements, will raise an InvalidArgumentError exception.
 
 It can be convenient to have a function that returns the static shape when available and dynamic shape when it's not. The following utility function does just that:
 ```python
