@@ -18,7 +18,7 @@ Table of Contents
     - [Entropy](#entropy)
     - [Make parallel](#make_parallel)
 
-> _My attempt is to gradually expand this series by adding new articles and keep the content up to date with the latest releases of TensorFlow API. If you have suggestions on how to improve this series or find the explanation ambiguous, feel free to create an issue, send patches, or reach out on [twitter](https://twitter.com/VahidK) -Vahid K._
+> _My attempt is to gradually expand this series by adding new articles and keep the content up to date with the latest releases of TensorFlow API. If you have suggestions on how to improve this series or find the explanations ambiguous, feel free to create an issue, send patches, or reach out on [twitter](https://twitter.com/VahidK) -Vahid K._
 
 ## TensorFlow Basics
 <a name="basics"></a>
