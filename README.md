@@ -347,8 +347,6 @@ In the above code there are some points to remind ourselves of. `tf.constant()` 
 
 
 **It is important to keep in mind these differences from traditional languages like Python or C++ as they play a crucial role in conceptualizing  more advanced codes in TensorFlow.**
-=======
-** It is important to keep in mind these differences from traditional languages like Python or C++ as they play a crucial role in conceptualizing  more advanced codes in TensorFlow. **
 
 Evaluating "a" will return the value 3 as expected.  Note that here we are creating 3 tensors, two constant tensors and another tensor that stores the result of the addition. Note that you can't overwrite the value of a tensor. If you want to modify it you have to create a new tensor. As we did here.
 
