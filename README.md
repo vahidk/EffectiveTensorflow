@@ -18,6 +18,8 @@ Table of Contents
     - [Entropy](#entropy)
     - [Make parallel](#make_parallel)
 
+> _My attempt is to gradually expand this series by adding new articles and keep the content up to date with the latest releases of TensorFlow API. If you have suggestions on how to improve this series or find the explanation ambiguous, feel free to create an issue, send patches, or reach out on [twitter](https://twitter.com/VahidK) -Vahid K._
+
 ## TensorFlow Basics
 <a name="basics"></a>
 The most striking difference between TensorFlow and other numerical computation libraries such as numpy is that operations in TensorFlow are symbolic. This is a powerful concept that allows TensorFlow to do all sort of things (e.g. automatic differentiation) that are not possible with imperative libraries such as numpy. But it also comes at the cost of making it harder to grasp. Our attempt here is to demystify TensorFlow and provide some guidelines and best practices for more effective use of TensorFlow.
