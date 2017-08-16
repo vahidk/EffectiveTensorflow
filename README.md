@@ -345,11 +345,11 @@ tf.Session().run(a)
 
 In the above code there are some points to remind ourselves of. `tf.constant()` is an operation. So, `a = tf.constant(1)` does not mean that a variable is being created for storing the constant value of `1`. It simply creates a node in the graph. The same holds for `b = tf.constant(2)`. Later `a = a + b` is a shorthand for `tf.add()` and so it should not be interpreted as an assignment of `a+b` to `a`. Due to `+`, `a` in `a+b` is interpreted as a Tensor which can be obtained by evaluating the node `tf.constant(1)`. However `a=` in the statement `a = a + b` refers to the operation of `tf.add()` on the right hand side.
 
-<<<<<<< HEAD
+
 **It is important to keep in mind these differences from traditional languages like Python or C++ as they play a crucial role in conceptualizing  more advanced codes in TensorFlow.**
 =======
 ** It is important to keep in mind these differences from traditional languages like Python or C++ as they play a crucial role in conceptualizing  more advanced codes in TensorFlow. **
->>>>>>> 61d074bcc9fb8f8ee359e52c97f39d45b1e4e8a8
+
 Evaluating "a" will return the value 3 as expected.  Note that here we are creating 3 tensors, two constant tensors and another tensor that stores the result of the addition. Note that you can't overwrite the value of a tensor. If you want to modify it you have to create a new tensor. As we did here.
 
 ***
