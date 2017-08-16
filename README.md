@@ -4,14 +4,15 @@ Table of Contents
 =================
 1.  [TensorFlow Basics](#basics)
 2.  [Understanding static and dynamic shapes](#shapes)
-3.  [Broadcasting the good and the ugly](#broadcast)
-4.  [Understanding order of execution and control dependencies](#control_deps)
-5.  [Control flow operations: conditionals and loops](#control_flow)
-6.  [Prototyping kernels and advanced visualization with Python ops](#python_ops)
-7.  [Multi-GPU processing with data parallelism](#multi_gpu)
-8.  [Debugging TensorFlow models](#debug)
-9.  [Building a neural network training framework with learn API](#tf_learn)
-10. [TensorFlow Cookbook](#cookbook)
+3.  [Scopes and when to use them](#scopes)
+4.  [Broadcasting the good and the ugly](#broadcast)
+5.  [Understanding order of execution and control dependencies](#control_deps)
+6.  [Control flow operations: conditionals and loops](#control_flow)
+7.  [Prototyping kernels and advanced visualization with Python ops](#python_ops)
+8.  [Multi-GPU processing with data parallelism](#multi_gpu)
+9.  [Debugging TensorFlow models](#debug)
+10. [Building a neural network training framework with learn API](#tf_learn)
+11. [TensorFlow Cookbook](#cookbook)
     - [Beam search](#beam_search)
     - [Merge](#merge)
     - [Entropy](#entropy)
@@ -109,7 +110,7 @@ This is just tip of the iceberg for what TensorFlow can do. Many problems such a
 
 ## Understanding static and dynamic shapes
 <a name="shapes"></a>
-Tensors in TensorFlow have a static shape attribute which is determined during graph construction. The static shape may be underspecified. For example we might define a float32 tensor of shape [None, 128]:
+Tensors in TensorFlow have a static shape attribute which is determined during graph construction. The static shape may be underspecified. For example we might define a tensor of shape [None, 128]:
 ```python
 import tensorflow as tf
 
@@ -179,6 +180,86 @@ Then collapsing the second dimension becomes very easy:
 b = tf.placeholder(tf.float32, [None, 10, 32])
 b = reshape(b, [0, [1, 2]])
 ```
+
+## Scopes and when to use them
+<a name="scopes"></a>
+
+Variables and tensors in TensorFlow have a name attribute that is used to identify them in the graph. If you don't specify a name when creating a variable or a tensor, TensorFlow automatically assigns a name for you:
+
+```python
+a = tf.Variable(1)
+print(a.name)  # prints "Variable:0"
+
+b = tf.constant(1)
+print(b.name)  # prints "Const:0"
+```
+
+You can overwrite the default name by explicitly specifying it:
+
+```python
+a = tf.Variable(1, name="a")
+print(a.name)  # prints "a:0"
+
+b = tf.constant(1, name="b")
+print(b.name)  # prints "b:0"
+```
+
+TensorFlow introduces two different context managers to alter the name of tensors and variables. The first is tf.name_scope which modifies the name of tensors:
+
+```python
+with tf.name_scope('scope'):
+  a = tf.get_variable(name="a", shape=[])
+  print(a.name)  # prints "a:0"
+
+  b = tf.constant(1, name="b")
+  print(b.name)  # prints "scope/b:0"
+```
+
+The other is tf.variable_scope which modifies the name of both tensors and variables:
+
+```python
+with tf.variable_scope('scope'):
+  a = tf.get_variable(name="a", shape=[])
+  print(a.name)  # prints "scope/a:0"
+
+  b = tf.constant(1, name="b")
+  print(b.name)  # prints "scope/b:0"
+```
+
+Note that there are two ways to define new variables in TensorFlow, by calling tf.get_variable or by creating a tf.Variable object. But we rarely use tf.Variable in practice.
+
+tf.get_variable enables variable sharing which is useful when building neural network models. Calling tf.get_variable with a new name results in creating a new variable, but if a variable with a same name exists it will raise a ValueError exception, telling us that re-declaring a variable is not allowed:
+
+```python
+with tf.variable_scope('scope'):
+  a1 = tf.get_variable(name="a", shape=[])
+  a2 = tf.get_variable(name="a", shape=[])  # Disallowed
+```
+
+But what if we actually want to reuse a previously declared variable? Variable scopes also provide the functionality to do that:
+```python
+with tf.variable_scope('scope'):
+  a1 = tf.get_variable(name="a", shape=[])
+with tf.variable_scope('scope', reuse=True):
+  a2 = tf.get_variable(name="a", shape=[])  # OK
+```
+
+This becomes handy for example when using built-in neural network layers:
+```python
+features1 = tf.layers.conv2d(image1, filters=32, kernel_size=3)
+# Use the same convolution weights to process the second image:
+with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+  features2 = tf.layers.conv2d(image2, filters=32, kernel_size=3)
+```
+
+This syntax may not look very clean to some. Especially if you want to do lots of variable sharing keeping track of when to define new variables and when to reuse them can be cumbersome and error prone. TensorFlow templates are designed to handle this automatically:
+```python
+conv3x32 = tf.make_template("conv3x32", lambda x: tf.layers.conv2d(x, 32, 3))
+features1 = conv3x32(image1)
+features2 = conv3x32(image2)  # Will reuse the convolution weights.
+```
+You can turn any function to a TensorFlow template. Upon the first call to a template, the variables defined inside the function would be declared and in the consecutive invocations they would automatically get reused.
+
 
 ## Broadcasting the good and the ugly
 <a name="broadcast"></a>
