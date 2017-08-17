@@ -11,8 +11,9 @@ Table of Contents
 7.  [Prototyping kernels and advanced visualization with Python ops](#python_ops)
 8.  [Multi-GPU processing with data parallelism](#multi_gpu)
 9.  [Debugging TensorFlow models](#debug)
-10. [Building a neural network training framework with learn API](#tf_learn)
-11. [TensorFlow Cookbook](#cookbook)
+10. [Numerical stability in TensorFlow](#stable)
+11. [Building a neural network training framework with learn API](#tf_learn)
+12. [TensorFlow Cookbook](#cookbook)
     - [Beam search](#beam_search)
     - [Merge](#merge)
     - [Entropy](#entropy)
@@ -22,9 +23,9 @@ Table of Contents
 
 ## TensorFlow Basics
 <a name="basics"></a>
-The most striking difference between TensorFlow and other numerical computation libraries such as numpy is that operations in TensorFlow are symbolic. This is a powerful concept that allows TensorFlow to do all sort of things (e.g. automatic differentiation) that are not possible with imperative libraries such as numpy. But it also comes at the cost of making it harder to grasp. Our attempt here is to demystify TensorFlow and provide some guidelines and best practices for more effective use of TensorFlow.
+The most striking difference between TensorFlow and other numerical computation libraries such as NumPy is that operations in TensorFlow are symbolic. This is a powerful concept that allows TensorFlow to do all sort of things (e.g. automatic differentiation) that are not possible with imperative libraries such as NumPy. But it also comes at the cost of making it harder to grasp. Our attempt here is to demystify TensorFlow and provide some guidelines and best practices for more effective use of TensorFlow.
 
-Let's start with a simple example, we want to multiply two random matrices. First we look at an implementation done in numpy:
+Let's start with a simple example, we want to multiply two random matrices. First we look at an implementation done in NumPy:
 ```python
 import numpy as np
 
@@ -48,7 +49,7 @@ z_val = sess.run(z)
 
 print(z_val)
 ```
-Unlike numpy that immediately performs the computation and produces the result, tensorflow only gives us a handle (of type Tensor) to a node in the graph that represents the result. If we try printing the value of z directly, we get something like this:
+Unlike NumPy that immediately performs the computation and produces the result, tensorflow only gives us a handle (of type Tensor) to a node in the graph that represents the result. If we try printing the value of z directly, we get something like this:
 ```
 Tensor("MatMul:0", shape=(10, 10), dtype=float32)
 ```
@@ -828,6 +829,104 @@ Now if you run the optimizer again with the correct version you can see the fina
 which are exactly what we wanted.
 
 TensorFlow summaries, and tfdbg (TensorFlow Debugger) are other tools that can be used for debugging. Please refer to the official docs to learn more.
+
+## Numerical stability in TensorFlow
+<a name="stable"></a>
+When using any numerical computation library such as NumPy or TensorFlow, it's important to note that writing mathematically correct code doesn't necessarily lead to correct results. You also need to make sure that the computations are stable.
+
+Let's start with a simple example. From primary school we know that x * y / y is equal to x for any non zero value of x. But let's see if that's always true in practice:
+```python
+import numpy as np
+
+x = np.float32(1)
+
+y = np.float32(1e-50)  # y would be stored as zero
+z = x * y / y
+
+print(z)  # prints nan
+```
+
+The reason for the incorrect result is that y is simply too small for float32 type. A similar problem occurs when y is too large:
+
+```python
+y = np.float32(1e39)  # y would be stored as inf
+z = x * y / y
+
+print(z)  # prints 0
+```
+
+The smallest positive value that float32 type can represent is 1.4013e-45 and anything below that would be stored as zero. Also, any number beyond 3.40282e+38, would be stored as inf.
+
+```python
+print(np.nextafter(np.float32(0), np.float32(1)))  # prints 1.4013e-45
+print(np.finfo(np.float32).max)  # print 3.40282e+38
+```
+
+To make sure that your computations are stable, you want to avoid values with small or very large absolute value. This may sound very obvious, but these kind of problems can become extremely hard to debug especially when doing gradient descent in TensorFlow. This is because you not only need to make sure that all the values in the forward pass are within the valid range of your data types, but also you need to make sure of the same for the backward pass (during gradient computation).
+
+Let's look at a real example. We want to compute the softmax over a vector of logits. A naive implementation would look something like this:
+```python
+import tensorflow as tf
+
+def unstable_softmax(logits):
+    exp = tf.exp(logits)
+    return exp / tf.reduce_sum(exp)
+
+tf.Session().run(unstable_softmax([1000., 0.]))  # prints [ nan, 0.]
+```
+Note that computing the exponential of logits for relatively small numbers results to gigantic results that are out of float32 range. The largest valid logit for our naive softmax implementation is ln(3.40282e+38) = 88.7, anything beyond that leads to a nan outcome.
+
+But how can we make this more stable? The solution is rather simple. It's easy to see that exp(x - c) / &sum; exp(x - c) = exp(x) / &sum; exp(x). Therefore we can subtract any constant from the logits and the result would remain the same. We choose this constant to be the maximum of logits. This way the domain of the exponential function would be limited to [-inf, 0], and consequently its range would be [0.0, 1.0] which is desirable:
+
+```python
+import tensorflow as tf
+
+def softmax(logits):
+    exp = tf.exp(logits - tf.reduce_max(logits))
+    return exp / tf.reduce_sum(exp)
+
+tf.Session().run(softmax([1000., 0.]))  # prints [ 1., 0.]
+```
+
+Let's look at a more complicated case. Consider we have a classification problem. We use the softmax function to produce probabilities from our logits. We then define our loss function to be the cross entropy between our predictions and the labels. Recall that cross entropy for a categorical distribution can be simply defined as xe(p, q) = -&sum; p_i log(q_i). So a naive implementation of the cross entropy would look like this:
+
+```python
+def unstable_softmax_cross_entropy(labels, logits):
+    logits = tf.log(softmax(logits))
+    return -tf.reduce_sum(labels * logits)
+
+labels = tf.constant([0.5, 0.5])
+logits = tf.constant([1000., 0.])
+
+xe = unstable_softmax_cross_entropy(labels, logits)
+
+print(tf.Session().run(xe))  # prints inf
+```
+
+Note that in this implementation as the softmax output approaches zero, the log's output approaches infinity which causes instability in our computation. We can rewrite this by expanding the softmax and doing some simplifications:
+
+```python
+def softmax_cross_entropy(labels, logits):
+    scaled_logits = logits - tf.reduce_max(logits)
+    normalized_logits = scaled_logits - tf.reduce_logsumexp(scaled_logits)
+    return -tf.reduce_sum(labels * normalized_logits)
+
+labels = tf.constant([0.5, 0.5])
+logits = tf.constant([1000., 0.])
+
+xe = softmax_cross_entropy(labels, logits)
+
+print(tf.Session().run(xe))  # prints 500.0
+```
+
+We can also verify that the gradients are also computed correctly:
+```python
+g = tf.gradients(xe, logits)
+print(tf.Session().run(g))  # prints [0.5, -0.5]
+```
+which is correct.
+
+Let me remind again that extra care must be taken when doing gradient descent to make sure that the range of your functions as well as the gradients for each layer are within a valid range. Exponential and logarithmic functions when used naively are especially problematic because they can map small numbers to enormous ones and the other way around.
 
 ## Building a neural network training framework with learn API
 <a name="tf_learn"></a>
