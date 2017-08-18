@@ -210,7 +210,7 @@ print(b.name)  # prints "b:0"
 TensorFlow introduces two different context managers to alter the name of tensors and variables. The first is tf.name_scope which modifies the name of tensors:
 
 ```python
-with tf.name_scope('scope'):
+with tf.name_scope("scope"):
   a = tf.get_variable(name="a", shape=[])
   print(a.name)  # prints "a:0"
 
@@ -221,7 +221,7 @@ with tf.name_scope('scope'):
 The other is tf.variable_scope which modifies the name of both tensors and variables:
 
 ```python
-with tf.variable_scope('scope'):
+with tf.variable_scope("scope"):
   a = tf.get_variable(name="a", shape=[])
   print(a.name)  # prints "scope/a:0"
 
@@ -234,16 +234,16 @@ Note that there are two ways to define new variables in TensorFlow, by calling t
 tf.get_variable enables variable sharing which is useful when building neural network models. Calling tf.get_variable with a new name results in creating a new variable, but if a variable with a same name exists it will raise a ValueError exception, telling us that re-declaring a variable is not allowed:
 
 ```python
-with tf.variable_scope('scope'):
+with tf.variable_scope("scope"):
   a1 = tf.get_variable(name="a", shape=[])
   a2 = tf.get_variable(name="a", shape=[])  # Disallowed
 ```
 
 But what if we actually want to reuse a previously declared variable? Variable scopes also provide the functionality to do that:
 ```python
-with tf.variable_scope('scope'):
+with tf.variable_scope("scope"):
   a1 = tf.get_variable(name="a", shape=[])
-with tf.variable_scope('scope', reuse=True):
+with tf.variable_scope("scope", reuse=True):
   a2 = tf.get_variable(name="a", shape=[])  # OK
 ```
 
@@ -552,20 +552,20 @@ import numpy as np
 import PIL
 import tensorflow as tf
 
-def visualize_labeled_images(images, labels, max_outputs=3, name='image'):
+def visualize_labeled_images(images, labels, max_outputs=3, name="image"):
     def _visualize_image(image, label):
         # Do the actual drawing in python
         fig = plt.figure(figsize=(3, 3), dpi=80)
         ax = fig.add_subplot(111)
         ax.imshow(image[::-1,...])
         ax.text(0, 0, str(label),
-          horizontalalignment='left',
-          verticalalignment='top')
+          horizontalalignment="left",
+          verticalalignment="top")
         fig.canvas.draw()
 
         # Write the plot as a memory file.
         buf = io.BytesIO()
-        data = fig.savefig(buf, format='png')
+        data = fig.savefig(buf, format="png")
         buf.seek(0)
 
         # Read the image and convert to numpy array
@@ -595,7 +595,7 @@ Note that since summaries are usually only evaluated once in a while (not per st
  ```python
  import tensorflow as tf
 
-with tf.device(tf.DeviceSpec(device_type='CPU', device_index=0)):
+with tf.device(tf.DeviceSpec(device_type="CPU", device_index=0)):
     a = tf.random_uniform([1000, 100])
     b = tf.random_uniform([1000, 100])
     c = a + b
@@ -605,7 +605,7 @@ tf.Session().run(c)
 
 The same thing can as simply be done on GPU:
 ```python
-with tf.device(tf.DeviceSpec(device_type='GPU', device_index=0)):
+with tf.device(tf.DeviceSpec(device_type="GPU", device_index=0)):
     a = tf.random_uniform([1000, 100])
     b = tf.random_uniform([1000, 100])
     c = a + b
@@ -618,7 +618,7 @@ split_b = tf.split(b, 2)
 
 split_c = []
 for i in range(2):
-    with tf.device(tf.DeviceSpec(device_type='GPU', device_index=i)):
+    with tf.device(tf.DeviceSpec(device_type="GPU", device_index=i)):
         split_c.append(split_a[i] + split_b[i])
 
 c = tf.concat(split_c, axis=0)
@@ -633,7 +633,7 @@ def make_parallel(fn, num_gpus, **kwargs):
 
     out_split = []
     for i in range(num_gpus):
-        with tf.device(tf.DeviceSpec(device_type='GPU', device_index=i)):
+        with tf.device(tf.DeviceSpec(device_type="GPU", device_index=i)):
             with tf.variable_scope(tf.get_variable_scope(), reuse=i > 0):
                 out_split.append(fn(**{k : v[i] for k, v in in_splits.items()}))
 
@@ -772,7 +772,7 @@ def non_differentiable_entropy(logits):
     probs = tf.nn.softmax(logits)
     return tf.nn.softmax_cross_entropy_with_logits(labels=probs, logits=logits)
 
-w = tf.get_variable('w', shape=[5])
+w = tf.get_variable("w", shape=[5])
 y = -non_differentiable_entropy(w)
 
 opt = tf.train.AdamOptimizer()
@@ -810,7 +810,7 @@ def entropy(logits, dim=-1):
     nplogp = probs * (tf.reduce_logsumexp(logits, dim, keep_dims=True) - logits)
     return tf.reduce_sum(nplogp, dim)
 
-w = tf.get_variable('w', shape=[5])
+w = tf.get_variable("w", shape=[5])
 y = -entropy(w)
 
 print(w.get_shape())
@@ -966,7 +966,7 @@ estimator.fit(input_fn=input_fn, max_steps=...)
 
 and to evaluate the model, call Estimator.evaluate(), providing a set of metrics:
 ```
-metrics = { 'accuracy': tf.metrics.accuracy }
+metrics = { "accuracy": tf.metrics.accuracy }
 estimator.evaluate(input_fn=input_fn, metrics=metrics)
 ```
 
@@ -989,9 +989,9 @@ An even higher level way of running experiments is by using learn_runner.run() f
 ```python
 import tensorflow as tf
 
-tf.flags.DEFINE_string('output_dir', '', 'Optional output dir.')
-tf.flags.DEFINE_string('schedule', 'train_and_evaluate', 'Schedule.')
-tf.flags.DEFINE_string('hparams', '', 'Hyper parameters.')
+tf.flags.DEFINE_string("output_dir", "", "Optional output dir.")
+tf.flags.DEFINE_string("schedule", "train_and_evaluate", "Schedule.")
+tf.flags.DEFINE_string("hparams", "", "Hyper parameters.")
 
 FLAGS = tf.flags.FLAGS
 learn = tf.contrib.learn
@@ -1016,10 +1016,10 @@ def main(unused_argv):
     schedule=FLAGS.schedule,
     hparams=hparams)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   tf.app.run()
 ```
-The schedule flag decides which member function of the Experiment object gets called. So, if you for example set schedule to 'train_and_evaluate', experiment.train_and_evaluate() would be called.
+The schedule flag decides which member function of the Experiment object gets called. So, if you for example set schedule to "train_and_evaluate", experiment.train_and_evaluate() would be called.
 
 Now let's have a look at how we might actually write an input function. One way to do this  is through python ops (See [this item](#python_ops) for more information on python ops).
 ```python
@@ -1044,8 +1044,8 @@ An alternative way is to write your data as TFRecords format and use the multi-t
 ```python
 def input_fn():
     features = {
-        'image': tf.FixedLenFeature([], tf.string),
-        'label': tf.FixedLenFeature([], tf.int64),
+        "image": tf.FixedLenFeature([], tf.string),
+        "label": tf.FixedLenFeature([], tf.int64),
     }
     tensors = tf.contrib.learn.read_batch_features(
         file_pattern=...,
@@ -1055,29 +1055,29 @@ def input_fn():
 ```
 See [mnist.py](https://github.com/vahidk/EffectiveTensorFlow/blob/master/code/framework/dataset/mnist.py) for an example of how to convert your data to TFRecords format.
 
-The framework also comes with a simple convolutional network classifier in [convnet_classifier.py](https://github.com/vahidk/EffectiveTensorFlow/blob/master/code/framework/model/convnet_classifier.py) that includes an example model and evaluation metric:
+The framework also comes with a simple convolutional network classifier in [cnn_classifier.py](https://github.com/vahidk/EffectiveTensorFlow/blob/master/code/framework/model/cnn_classifier.py) that includes an example model and evaluation metric:
 
 ```python
 def model_fn(features, labels, mode, params):
-  images = features['image']
-  labels = labels['label']
+  images = features["image"]
+  labels = labels["label"]
 
   predictions = ...
   loss = ...
 
-  return {'predictions': predictions}, loss
+  return {"predictions": predictions}, loss
 
 def eval_metrics_fn(params):
   return {
-    'accuracy': tf.contrib.learn.MetricSpec(tf.metrics.accuracy)
+    "accuracy": tf.contrib.learn.MetricSpec(tf.metrics.accuracy)
   }
 ```
 MetricSpec connects our model to the given metric function (e.g. tf.metrics.accuracy). Since our label and predictions solely include a single tensor, everything automagically works. Although if your label/prediction includes multiple tensors, you need to explicitly specify which tensors you want to pass to the metric function:
 ```python
 tf.contrib.learn.MetricSpec(
   tf.metrics.accuracy,
-  label_key='label',
-  prediction_key='predictions')
+  label_key="label",
+  prediction_key="predictions")
 ```
 
 And that's it! This is all you need to get started with TensorFlow learn API. I recommend to have a look at the [source code](https://github.com/vahidk/EffectiveTensorFlow/tree/master/code/framework) and see the official python API to learn more about the learn API.
@@ -1123,7 +1123,7 @@ def batch_gather(tensor, indices):
   return output
 
 def rnn_beam_search(update_fn, initial_state, sequence_length, beam_width,
-                    begin_token_id, end_token_id, name='rnn'):
+                    begin_token_id, end_token_id, name="rnn"):
   """Beam-search decoder for recurrent models.
 
   Args:
@@ -1201,13 +1201,13 @@ def merge(tensors, units, activation=tf.nn.relu, name=None, **kwargs):
     tensors: A list of tensor with the same rank.
     units: Number of units in the projection function.
   """
-  with tf.variable_scope(name, default_name='merge'):
+  with tf.variable_scope(name, default_name="merge"):
     # Apply linear projection to input tensors.
     projs = []
     for i, tensor in enumerate(tensors):
       proj = tf.layers.dense(
           tensor, units, activation=None,
-          name='proj_%d' % i,
+          name="proj_%d" % i,
           **kwargs)
       projs.append(proj)
 
@@ -1260,7 +1260,7 @@ def make_parallel(fn, num_gpus, **kwargs):
 
   out_split = []
   for i in range(num_gpus):
-    with tf.device(tf.DeviceSpec(device_type='GPU', device_index=i)):
+    with tf.device(tf.DeviceSpec(device_type="GPU", device_index=i)):
       with tf.variable_scope(tf.get_variable_scope(), reuse=i > 0):
         out_split.append(fn(**{k : v[i] for k, v in in_splits.items()}))
 
