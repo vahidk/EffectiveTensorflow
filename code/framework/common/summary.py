@@ -12,7 +12,7 @@ import tensorflow as tf
 
 
 def labeled_image(name, images, labels, max_outputs=3, flip_vertical=False,
-                  color='pink', font_size=15):
+                  color="pink", font_size=15):
   """Writes a summary visualizing given images and corresponding labels."""
   def _visualize_image(image, label):
     # Do the actual drawing in python
@@ -22,15 +22,15 @@ def labeled_image(name, images, labels, max_outputs=3, flip_vertical=False,
       image = image[::-1,...]
     ax.imshow(image.squeeze())
     ax.text(0, 0, str(label),
-      horizontalalignment='left',
-      verticalalignment='top',
+      horizontalalignment="left",
+      verticalalignment="top",
       color=color,
       fontsize=font_size)
     fig.canvas.draw()
 
     # Write the plot as a memory file.
     buf = io.BytesIO()
-    data = fig.savefig(buf, format='png')
+    data = fig.savefig(buf, format="png")
     buf.seek(0)
 
     # Read the image and convert to numpy array

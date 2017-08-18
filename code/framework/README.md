@@ -26,7 +26,7 @@ In the above snippets you could replace mnist with cifar10 or cifar100 to prepro
 ## Training
 To train an mnist classification model run:
 ```
-python -m main --model=convnet_classifier --dataset=mnist
+python -m main --model=cnn_classifier --dataset=mnist
 ```
 
 To visualize the training logs on Tensorboard run:

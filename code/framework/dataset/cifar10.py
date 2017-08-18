@@ -16,44 +16,45 @@ import tensorflow as tf
 
 from common import utils
 
-REMOTE_URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
-LOCAL_DIR = os.path.join('data/cifar10/')
-ARCHIVE_NAME = 'cifar-10-python.tar.gz'
-DATA_DIR = 'cifar-10-batches-py/'
-TRAIN_BATCHES = ['data_batch_%d' % (i + 1) for i in range(5)]
-TEST_BATCHES = ['test_batch']
+REMOTE_URL = "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
+LOCAL_DIR = os.path.join("data/cifar10/")
+ARCHIVE_NAME = "cifar-10-python.tar.gz"
+DATA_DIR = "cifar-10-batches-py/"
+TRAIN_BATCHES = ["data_batch_%d" % (i + 1) for i in range(5)]
+TEST_BATCHES = ["test_batch"]
 
 IMAGE_SIZE = 32
 NUM_CLASSES = 10
 
-
-FEATURES = {
-  'image': tf.FixedLenFeature([], tf.string),
-  'label': tf.FixedLenFeature([], tf.int64),
-}
-
 HPARAMS = {
-  'image_size': IMAGE_SIZE,
-  'num_classes': NUM_CLASSES,
+  "image_size": IMAGE_SIZE,
+  "num_classes": NUM_CLASSES,
 }
 
 
 def get_split(split):
   """Returns train/test split paths."""
-  output_data = os.path.join(LOCAL_DIR, 'data_%s.tfrecord' % split)
+  output_data = os.path.join(LOCAL_DIR, "data_%s.tfrecord" % split)
   return output_data
 
 
-def map_features(features):
-  """Adapts read data to model input."""
-  def _decode_image(image):
-    image = tf.to_float(tf.image.decode_image(image, channels=3)) / 255.0
-    image = tf.reshape(image, [IMAGE_SIZE, IMAGE_SIZE, 3])
-    return image
+def create(split):
+  """Create an instance of the dataset object."""
+  return tf.contrib.data.TFRecordDataset(get_split(split))
 
-  image = tf.map_fn(_decode_image, features['image'], tf.float32)
-  label = features['label']
-  return {'image': image}, {'label': label}
+
+def parser_fn(record):
+  """Parse input record to features and labels."""
+  features = tf.parse_single_example(record, {
+    "image": tf.FixedLenFeature([], tf.string),
+    "label": tf.FixedLenFeature([], tf.int64),
+  })
+
+  image = tf.to_float(tf.image.decode_image(features["image"], 3)) / 255.0
+  image = tf.reshape(image, [IMAGE_SIZE, IMAGE_SIZE, 3])
+  label = features["label"]
+
+  return {"image": image}, {"label": label}
 
 
 def _download_data():
@@ -61,10 +62,10 @@ def _download_data():
   if not os.path.exists(LOCAL_DIR):
     os.makedirs(LOCAL_DIR)
   if not os.path.exists(LOCAL_DIR + ARCHIVE_NAME):
-    print('Downloading...')
+    print("Downloading...")
     urllib.request.urlretrieve(REMOTE_URL, LOCAL_DIR + ARCHIVE_NAME)
   if not os.path.exists(LOCAL_DIR + DATA_DIR):
-    print('Extracting files...')
+    print("Extracting files...")
     tar = tarfile.open(LOCAL_DIR + ARCHIVE_NAME)
     tar.extractall(LOCAL_DIR)
     tar.close()
@@ -78,15 +79,15 @@ def _image_iterator(split):
   }[split]
 
   for batch in batches:
-    with open('%s%s%s' % (LOCAL_DIR, DATA_DIR, batch), 'rb') as fo:
+    with open("%s%s%s" % (LOCAL_DIR, DATA_DIR, batch), "rb") as fo:
       dict = cPickle.load(fo)
-      images = np.array(dict['data'])
-      labels = np.array(dict['labels'])
+      images = np.array(dict["data"])
+      labels = np.array(dict["labels"])
 
       num = images.shape[0]
       images = np.reshape(images, [num, 3, IMAGE_SIZE, IMAGE_SIZE])
       images = np.transpose(images, [0, 2, 3, 1])
-      print('Loaded %d examples.' % num)
+      print("Loaded %d examples." % num)
 
       for i in range(num):
         yield utils.encode_image(images[i]), labels[i]
@@ -98,9 +99,9 @@ def _convert_data(split):
     image, label = item
     example = tf.train.Example(features=tf.train.Features(
       feature={
-        'image': tf.train.Feature(
+        "image": tf.train.Feature(
           bytes_list=tf.train.BytesList(value=[image])),
-        'label': tf.train.Feature(
+        "label": tf.train.Feature(
           int64_list=tf.train.Int64List(value=[label.astype(np.int64)]))
       }))
     return example
@@ -119,24 +120,24 @@ def _visulize_data(split=tf.estimator.ModeKeys.TRAIN):
   example.ParseFromString(item)
 
   image = utils.decode_image(
-    example.features.feature['image'].bytes_list.value[0])
-  label = example.features.feature['label'].int64_list.value[0]
+    example.features.feature["image"].bytes_list.value[0])
+  label = example.features.feature["label"].int64_list.value[0]
 
   plt.imshow(image.astype(np.uint8))
-  plt.title('Label: %d' % label)
+  plt.title("Label: %d" % label)
   plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   if len(sys.argv) != 2:
-    print('Usage: python dataset.cifar10 <convert|visualize>')
+    print("Usage: python dataset.cifar10 <convert|visualize>")
     sys.exit(1)
 
-  if sys.argv[1] == 'convert':
+  if sys.argv[1] == "convert":
     _download_data()
     _convert_data(tf.estimator.ModeKeys.TRAIN)
     _convert_data(tf.estimator.ModeKeys.EVAL)
-  elif sys.argv[1] == 'visualize':
+  elif sys.argv[1] == "visualize":
     _visulize_data()
   else:
-    print('Unknown command', sys.argv[1])
+    print("Unknown command", sys.argv[1])

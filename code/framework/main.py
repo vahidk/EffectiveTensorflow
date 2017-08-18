@@ -11,39 +11,40 @@ from common import ops
 import dataset.cifar10
 import dataset.cifar100
 import dataset.mnist
-import model.convnet_classifier
+import model.cnn_classifier
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
-tf.flags.DEFINE_string('model', 'convnet_classifier', 'Model name.')
-tf.flags.DEFINE_string('dataset', 'mnist', 'Dataset name.')
-tf.flags.DEFINE_string('output_dir', '', 'Optional output dir.')
-tf.flags.DEFINE_string('schedule', 'train_and_evaluate', 'Schedule.')
-tf.flags.DEFINE_string('hparams', '', 'Hyper parameters.')
-tf.flags.DEFINE_integer('save_summary_steps', 10, 'Summary steps.')
-tf.flags.DEFINE_integer('save_checkpoints_steps', 10, 'Checkpoint steps.')
-tf.flags.DEFINE_integer('eval_steps', None, 'Number of eval steps.')
-tf.flags.DEFINE_integer('eval_frequency', 10, 'Eval frequency.')
-tf.flags.DEFINE_integer('num_gpus', 0, 'Numner of gpus.')
+tf.flags.DEFINE_string("model", "cnn_classifier", "Model name.")
+tf.flags.DEFINE_string("dataset", "mnist", "Dataset name.")
+tf.flags.DEFINE_string("output_dir", "", "Optional output dir.")
+tf.flags.DEFINE_string("schedule", "train_and_evaluate", "Schedule.")
+tf.flags.DEFINE_string("hparams", "", "Hyper parameters.")
+tf.flags.DEFINE_integer("num_epochs", 100, "Number of training epochs.")
+tf.flags.DEFINE_integer("save_summary_steps", 10, "Summary steps.")
+tf.flags.DEFINE_integer("save_checkpoints_steps", 10, "Checkpoint steps.")
+tf.flags.DEFINE_integer("eval_steps", None, "Number of eval steps.")
+tf.flags.DEFINE_integer("eval_frequency", 10, "Eval frequency.")
+tf.flags.DEFINE_integer("num_gpus", 0, "Numner of gpus.")
 
 FLAGS = tf.flags.FLAGS
 learn = tf.contrib.learn
 
 MODELS = {
-  'convnet_classifier': model.convnet_classifier
+  "cnn_classifier": model.cnn_classifier
 }
 
 DATASETS = {
-  'cifar10': dataset.cifar10,
-  'cifar100': dataset.cifar100,
-  'mnist': dataset.mnist,
+  "cifar10": dataset.cifar10,
+  "cifar100": dataset.cifar100,
+  "mnist": dataset.mnist,
 }
 
 HPARAMS = {
-  'optimizer': 'Adam',
-  'learning_rate': 0.001,
-  'decay_steps': 10000,
-  'batch_size': 128
+  "optimizer": "Adam",
+  "learning_rate": 0.001,
+  "decay_steps": 10000,
+  "batch_size": 128
 }
 
 def get_hparams():
@@ -61,19 +62,15 @@ def get_hparams():
 def make_input_fn(mode, params):
   """Returns an input function to read the dataset."""
   def _input_fn():
-    with tf.device(tf.DeviceSpec(device_type='CPU', device_index=0)):
-      dataset = DATASETS[FLAGS.dataset]
-      tensors = learn.read_batch_features(
-        file_pattern=dataset.get_split(mode),
-        batch_size=params.batch_size,
-        features=dataset.FEATURES,
-        reader=tf.TFRecordReader,
-        randomize_input=True if mode == learn.ModeKeys.TRAIN else False,
-        num_epochs=None if mode == learn.ModeKeys.TRAIN else 1,
-        queue_capacity=params.batch_size*3,
-        feature_queue_capacity=params.batch_size*2,
-        reader_num_threads=8 if mode == learn.ModeKeys.TRAIN else 1)
-      features, labels = dataset.map_features(tensors)
+    with tf.device(tf.DeviceSpec(device_type="CPU", device_index=0)):
+      dataset = DATASETS[FLAGS.dataset].create(mode)
+      if mode == learn.ModeKeys.TRAIN:
+        dataset = dataset.repeat(FLAGS.num_epochs)
+        dataset = dataset.shuffle(params.batch_size * 5)
+      dataset = dataset.map(DATASETS[FLAGS.dataset].parser_fn, num_threads=8)
+      dataset = dataset.batch(params.batch_size)
+      iterator = dataset.make_one_shot_iterator()
+      features, labels = iterator.get_next()
     return features, labels
   return _input_fn
 
@@ -98,8 +95,8 @@ def make_model_fn():
         params.optimizer, params.learning_rate, params.decay_steps)
 
       for i in range(FLAGS.num_gpus):
-        with tf.device(tf.DeviceSpec(device_type='GPU', device_index=i)):
-          with tf.name_scope('tower_%d' % i):
+        with tf.device(tf.DeviceSpec(device_type="GPU", device_index=i)):
+          with tf.name_scope("tower_%d" % i):
             with tf.variable_scope(tf.get_variable_scope(), reuse=i > 0):
               device_features = {k: v[i] for k, v in split_features.iteritems()}
               device_labels = {k: v[i] for k, v in split_labels.iteritems()}
@@ -124,7 +121,7 @@ def make_model_fn():
 
       loss = tf.add_n(losses) if losses else None
     else:
-      with tf.device(tf.DeviceSpec(device_type='GPU', device_index=0)):
+      with tf.device(tf.DeviceSpec(device_type="GPU", device_index=0)):
         predictions, loss = model_fn(features, labels, mode, params)
 
         train_op = None
@@ -133,7 +130,7 @@ def make_model_fn():
             params.optimizer, params.learning_rate, params.decay_steps)
           train_op = opt.minimize(loss, global_step=global_step)
 
-    tf.summary.scalar('loss/loss', loss)
+    tf.summary.scalar("loss/loss", loss)
 
     return tf.contrib.learn.ModelFnOps(
       mode=mode,
@@ -163,7 +160,7 @@ def main(unused_argv):
   if FLAGS.output_dir:
     model_dir = FLAGS.output_dir
   else:
-    model_dir = 'output/%s_%s' % (FLAGS.model, FLAGS.dataset)
+    model_dir = "output/%s_%s" % (FLAGS.model, FLAGS.dataset)
   session_config = tf.ConfigProto()
   session_config.allow_soft_placement = True
   session_config.gpu_options.allow_growth = True
@@ -181,5 +178,5 @@ def main(unused_argv):
     hparams=get_hparams())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   tf.app.run()

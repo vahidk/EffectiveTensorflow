@@ -40,7 +40,7 @@ def dense_layers(tensor,
                  name=None,
                  **kwargs):
   """Builds a stack of fully connected layers with optional dropout."""
-  with tf.variable_scope(name, default_name='dense_layers'):
+  with tf.variable_scope(name, default_name="dense_layers"):
     for i, size in enumerate(sizes):
       if i == len(sizes) - 1 and linear_top_layer:
         activation = None
@@ -48,7 +48,7 @@ def dense_layers(tensor,
       tensor = tf.layers.dense(
           tensor,
           size,
-          name='dense_layer_%d' % i,
+          name="dense_layer_%d" % i,
           activation=activation,
           **kwargs)
   return tensor
@@ -58,7 +58,7 @@ def conv_layers(tensor,
                 filters,
                 kernels,
                 pools,
-                padding='same',
+                padding="same",
                 activation=tf.nn.relu,
                 drop_rate=0.0,
                 **kwargs):
@@ -85,7 +85,7 @@ def create_optimizer(optimizer, learning_rate, decay_steps=None, **kwargs):
   if decay_steps:
     learning_rate = tf.train.exponential_decay(
       learning_rate, global_step, decay_steps, 0.5, staircase=True)
-    tf.summary.scalar('learning_rate', learning_rate)
+    tf.summary.scalar("learning_rate", learning_rate)
 
   return tf.contrib.layers.OPTIMIZER_CLS_NAMES[optimizer](
     learning_rate, **kwargs)

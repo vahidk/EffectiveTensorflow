@@ -53,7 +53,7 @@ def parallel_record_writer(iterator, create_example, path, num_threads=4):
   writer.close()
 
 
-def encode_image(data, format='png'):
+def encode_image(data, format="png"):
   """Encodes a numpy array to string."""
   im = PIL.Image.fromarray(data)
   buf = io.BytesIO()

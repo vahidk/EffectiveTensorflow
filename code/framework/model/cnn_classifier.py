@@ -13,14 +13,14 @@ from common import summary
 FLAGS = tf.flags.FLAGS
 
 HPARAMS = {
-  'drop_rate': 0.5
+  "drop_rate": 0.5
 }
 
 
 def model_fn(features, labels, mode, params):
   """CNN classifier model."""
-  images = features['image']
-  labels = labels['label']
+  images = features["image"]
+  labels = labels["label"]
 
   drop_rate = params.drop_rate if mode == tf.estimator.ModeKeys.TRAIN else 0.0
 
@@ -42,13 +42,13 @@ def model_fn(features, labels, mode, params):
   loss = tf.losses.sparse_softmax_cross_entropy(
     labels=labels, logits=logits)
 
-  summary.labeled_image('images', images, predictions)
+  summary.labeled_image("images", images, predictions)
 
-  return {'predictions': predictions}, loss
+  return {"predictions": predictions}, loss
 
 
 def eval_metrics_fn(params):
   """Eval metrics."""
   metrics_dict = {}
-  metrics_dict['accuracy'] = tf.contrib.learn.MetricSpec(tf.metrics.accuracy)
+  metrics_dict["accuracy"] = tf.contrib.learn.MetricSpec(tf.metrics.accuracy)
   return metrics_dict
