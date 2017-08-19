@@ -935,7 +935,7 @@ Let me remind again that extra care must be taken when doing gradient descent to
 
 ## Building a neural network training framework with learn API
 <a name="tf_learn"></a>
-For simplicity, in most of the examples here we manually create sessions and we don't care about saving and loading checkpoints but this is not how we usually do things in practice. You most probably want to use the learn API to take care of session management and logging. We provide a simple but practical framework in the [code/framework](https://github.com/vahidk/EffectiveTensorFlow/tree/master/code/framework) directory for training neural networks using TensorFlow. In this item we explain how this framework works.
+For simplicity, in most of the examples here we manually create sessions and we don't care about saving and loading checkpoints but this is not how we usually do things in practice. You most probably want to use the learn API to take care of session management and logging. We provide a simple but practical [framework](https://github.com/vahidk/TensorflowFramework/tree/master) for training neural networks using TensorFlow. In this item we explain how this framework works.
 
 When experimenting with neural network models you usually have a training/test split. You want to train your model on the training set, and once in a while evaluate it on test set and compute some metrics. You also need to store the model parameters as a checkpoint, and ideally you want to be able to stop and resume training. TensorFlow's learn API is designed to make this job easier, letting us focus on developing the actual model.
 
@@ -1058,9 +1058,9 @@ def input_fn():
         features=features,
         reader=tf.TFRecordReader)
 ```
-See [mnist.py](https://github.com/vahidk/EffectiveTensorFlow/blob/master/code/framework/dataset/mnist.py) for an example of how to convert your data to TFRecords format.
+See [mnist.py](https://github.com/vahidk/TensorflowFramework/blob/master/dataset/mnist.py) for an example of how to convert your data to TFRecords format.
 
-The framework also comes with a simple convolutional network classifier in [cnn_classifier.py](https://github.com/vahidk/EffectiveTensorFlow/blob/master/code/framework/model/cnn_classifier.py) that includes an example model and evaluation metric:
+The framework also comes with a simple convolutional network classifier in [cnn_classifier.py](https://github.com/vahidk/TensorflowFramework/blob/master/model/cnn_classifier.py) that includes an example model and evaluation metric:
 
 ```python
 def model_fn(features, labels, mode, params):
@@ -1085,7 +1085,7 @@ tf.contrib.learn.MetricSpec(
   prediction_key="predictions")
 ```
 
-And that's it! This is all you need to get started with TensorFlow learn API. I recommend to have a look at the [source code](https://github.com/vahidk/EffectiveTensorFlow/tree/master/code/framework) and see the official python API to learn more about the learn API.
+And that's it! This is all you need to get started with TensorFlow learn API. I recommend to have a look at the framework [source code](https://github.com/vahidk/TensorFlowFramework) and see the official python API to learn more about the learn API.
 
 ## TensorFlow Cookbook
 <a name="cookbook"></a>
