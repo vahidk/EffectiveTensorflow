@@ -19,7 +19,12 @@ Table of Contents
     - [Entropy](#entropy)
     - [Make parallel](#make_parallel)
 
-> _My attempt is to gradually expand this series by adding new articles and keep the content up to date with the latest releases of TensorFlow API. If you have suggestions on how to improve this series or find the explanations ambiguous, feel free to create an issue, send patches, or reach out on [twitter](https://twitter.com/VahidK) -V. K._
+__Note__: _My attempt is to gradually expand this series by adding new articles and keep the content up to date with the latest releases of TensorFlow API. If you have suggestions on how to improve this series or find the explanations ambiguous, feel free to create an issue, send patches, or reach out on [twitter](https://twitter.com/VahidK). -V. K._
+
+__Update__: In the latest release, the accompanied framework is moved to it's own [repository](https://github.com/vahidk/TensorflowFramework). To download the framework run:
+```
+git clone https://github.com/vahidk/TensorflowFramework.git
+```
 
 ## TensorFlow Basics
 <a name="basics"></a>
