@@ -174,7 +174,7 @@ z = abs(x)  # z = tf.abs(x)
 z = x & y  # z = tf.logical_and(x, y)
 z = x | y  # z = tf.logical_or(x, y)
 z = x ^ y  # z = tf.logical_xor(x, y)
-z = ~x  # z = tf.logical_not(x, y)
+z = ~x  # z = tf.logical_not(x)
 ```
 
 You can also use the augmented version of these ops. For example `x += y` and `x **= 2` are also valid.
