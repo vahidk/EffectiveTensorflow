@@ -121,13 +121,13 @@ This is just tip of the iceberg for what TensorFlow can do. Many problems such a
 
 ## Take advantage of the overloaded operators
 <a name="overloaded_ops"></a>
-Just like NumPy, TensorFlow overloads a number of python operators to make building graphs easier and more readable.
+Just like NumPy, TensorFlow overloads a number of python operators to make building graphs easier and the code more readable.
 
-One of the commonly used ops is the slicing operator that can make indexing tensors very easy:
+The slicing op is one of the overloaded operators that can make indexing tensors very easy:
 ```python
 z = x[begin:end]  # z = tf.slice(x, [begin], [end-begin])
 ```
-Be very careful when using this op though. The slicing op is very inefficient and often better avoided. To understand how inefficient this op can be let's look at an example. We want manually perform reduction across the rows of a matrix:
+Be very careful when using this op though. The slicing op is very inefficient and often better avoided, especially when the number of slices is high. To understand how inefficient this op can be let's look at an example. We want manually perform reduction across the rows of a matrix:
 ```python
 import tensorflow as tf
 import time
