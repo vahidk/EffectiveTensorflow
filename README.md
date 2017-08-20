@@ -189,7 +189,7 @@ if x:  # This will raise a TypeError error
 ```
 You can either use tf.cond(x, ...) if you want to check the value of the tensor, or use "if x is None" to check the value of the variable.
 
-Other operators that aren't supported are equal (==) and not equal (!=) operators which are overloaded in NumPy but not in TensorFlow.
+Other operators that aren't supported are equal (==) and not equal (!=) operators which are overloaded in NumPy but not in TensorFlow. Use the function versions instead which are `tf.equal` and `tf.not_equal`.
 
 ## Understanding static and dynamic shapes
 <a name="shapes"></a>
