@@ -3,10 +3,10 @@
 Table of Contents
 =================
 1.  [TensorFlow Basics](#basics)
-2.  [Take advantage of the overloaded operators](#overloaded_ops)
-3.  [Understanding static and dynamic shapes](#shapes)
-4.  [Scopes and when to use them](#scopes)
-5.  [Broadcasting the good and the ugly](#broadcast)
+2.  [Understanding static and dynamic shapes](#shapes)
+3.  [Scopes and when to use them](#scopes)
+4.  [Broadcasting the good and the ugly](#broadcast)
+5.  [Take advantage of the overloaded operators](#overloaded_ops)
 6.  [Understanding order of execution and control dependencies](#control_deps)
 7.  [Control flow operations: conditionals and loops](#control_flow)
 8.  [Prototyping kernels and advanced visualization with Python ops](#python_ops)
@@ -118,78 +118,6 @@ By running this piece of code you should see a result close to this:
 Which is a relatively close approximation to our parameters.
 
 This is just tip of the iceberg for what TensorFlow can do. Many problems such a optimizing large neural networks with millions of parameters can be implemented efficiently in TensorFlow in just a few lines of code. TensorFlow takes care of scaling across multiple devices, and threads, and supports a variety of platforms.
-
-## Take advantage of the overloaded operators
-<a name="overloaded_ops"></a>
-Just like NumPy, TensorFlow overloads a number of python operators to make building graphs easier and the code more readable.
-
-The slicing op is one of the overloaded operators that can make indexing tensors very easy:
-```python
-z = x[begin:end]  # z = tf.slice(x, [begin], [end-begin])
-```
-Be very careful when using this op though. The slicing op is very inefficient and often better avoided, especially when the number of slices is high. To understand how inefficient this op can be let's look at an example. We want manually perform reduction across the rows of a matrix:
-```python
-import tensorflow as tf
-import time
-
-x = tf.random_uniform([500, 10])
-
-z = tf.zeros([10])
-for i in range(500):
-    z += x[i]
-
-sess = tf.Session()
-start = time.time()
-sess.run(z)
-print("Took %f seconds." % (time.time() - start))
-```
-On my MacBook Pro, this took 2.67 seconds to run! The reason is that we are calling the slice op 500 times, which is going to be very slow to run. A better choice would have been to use tf.unstack op to slice the matrix into a list of vectors all at once:
-```python
-z = tf.zeros([10])
-for x_i in tf.unstack(x):
-    z += x_i
-```
-This took 0.18 seconds. Of course, the right way to do this simple reduction is to use tf.reduce_sum op:
-```python
-z = tf.reduce_sum(x, axis=0)
-```
-This took 0.008 seconds, which is 300x faster than the original implementation.
-
-TensorFlow also overloads a range of arithmetic and logical operators:
-```python
-z = -x  # z = tf.negative(x)
-z = x + y  # z = tf.add(x, y)
-z = x - y  # z = tf.subtract(x, y)
-z = x * y  # z = tf.mul(x, y)
-z = x / y  # z = tf.div(x, y)
-z = x // y  # z = tf.floordiv(x, y)
-z = x % y  # z = tf.mod(x, y)
-z = x ** y  # z = tf.pow(x, y)
-z = x @ y  # z = tf.matmul(x, y)
-z = x > y  # z = tf.greater(x, y)
-z = x >= y  # z = tf.greater_equal(x, y)
-z = x < y  # z = tf.less(x, y)
-z = x <= y  # z = tf.less_equal(x, y)
-z = abs(x)  # z = tf.abs(x)
-z = x & y  # z = tf.logical_and(x, y)
-z = x | y  # z = tf.logical_or(x, y)
-z = x ^ y  # z = tf.logical_xor(x, y)
-z = ~x  # z = tf.logical_not(x)
-```
-
-You can also use the augmented version of these ops. For example `x += y` and `x **= 2` are also valid.
-
-Note that Python doesn't allow overloading "and", "or", and "not" keywords.
-
-TensorFlow also doesn't allow using tensors as booleans, as it may be error prone:
-```python
-x = tf.constant(1.)
-if x:  # This will raise a TypeError error
-    ...
-```
-You can either use tf.cond(x, ...) if you want to check the value of the tensor, or use "if x is None" to check the value of the variable.
-
-Other operators that aren't supported are equal (==) and not equal (!=) operators which are overloaded in NumPy but not in TensorFlow. Use the function versions instead which are `tf.equal` and `tf.not_equal`.
 
 ## Understanding static and dynamic shapes
 <a name="shapes"></a>
@@ -409,6 +337,79 @@ c = tf.reduce_sum(a + b, 0)
 ```
 
 Here the value of c would be [5, 7], and we immediately would guess based on the shape of the result that there’s something wrong. A general rule of thumb is to always specify the dimensions in reduction operations and when using tf.squeeze.
+
+## Take advantage of the overloaded operators
+<a name="overloaded_ops"></a>
+Just like NumPy, TensorFlow overloads a number of python operators to make building graphs easier and the code more readable.
+
+The slicing op is one of the overloaded operators that can make indexing tensors very easy:
+```python
+z = x[begin:end]  # z = tf.slice(x, [begin], [end-begin])
+```
+Be very careful when using this op though. The slicing op is very inefficient and often better avoided, especially when the number of slices is high. To understand how inefficient this op can be let's look at an example. We want manually perform reduction across the rows of a matrix:
+```python
+import tensorflow as tf
+import time
+
+x = tf.random_uniform([500, 10])
+
+z = tf.zeros([10])
+for i in range(500):
+    z += x[i]
+
+sess = tf.Session()
+start = time.time()
+sess.run(z)
+print("Took %f seconds." % (time.time() - start))
+```
+On my MacBook Pro, this took 2.67 seconds to run! The reason is that we are calling the slice op 500 times, which is going to be very slow to run. A better choice would have been to use tf.unstack op to slice the matrix into a list of vectors all at once:
+```python
+z = tf.zeros([10])
+for x_i in tf.unstack(x):
+    z += x_i
+```
+This took 0.18 seconds. Of course, the right way to do this simple reduction is to use tf.reduce_sum op:
+```python
+z = tf.reduce_sum(x, axis=0)
+```
+This took 0.008 seconds, which is 300x faster than the original implementation.
+
+TensorFlow also overloads a range of arithmetic and logical operators:
+```python
+z = -x  # z = tf.negative(x)
+z = x + y  # z = tf.add(x, y)
+z = x - y  # z = tf.subtract(x, y)
+z = x * y  # z = tf.mul(x, y)
+z = x / y  # z = tf.div(x, y)
+z = x // y  # z = tf.floordiv(x, y)
+z = x % y  # z = tf.mod(x, y)
+z = x ** y  # z = tf.pow(x, y)
+z = x @ y  # z = tf.matmul(x, y)
+z = x > y  # z = tf.greater(x, y)
+z = x >= y  # z = tf.greater_equal(x, y)
+z = x < y  # z = tf.less(x, y)
+z = x <= y  # z = tf.less_equal(x, y)
+z = abs(x)  # z = tf.abs(x)
+z = x & y  # z = tf.logical_and(x, y)
+z = x | y  # z = tf.logical_or(x, y)
+z = x ^ y  # z = tf.logical_xor(x, y)
+z = ~x  # z = tf.logical_not(x)
+```
+
+You can also use the augmented version of these ops. For example `x += y` and `x **= 2` are also valid.
+
+Note that Python doesn't allow overloading "and", "or", and "not" keywords.
+
+TensorFlow also doesn't allow using tensors as booleans, as it may be error prone:
+```python
+x = tf.constant(1.)
+if x:  # This will raise a TypeError error
+    ...
+```
+You can either use tf.cond(x, ...) if you want to check the value of the tensor, or use "if x is None" to check the value of the variable.
+
+Other operators that aren't supported are equal (==) and not equal (!=) operators which are overloaded in NumPy but not in TensorFlow. Use the function versions instead which are `tf.equal` and `tf.not_equal`.
+
 
 ## Understanding order of execution and control dependencies
 <a name="control_deps"></a>
