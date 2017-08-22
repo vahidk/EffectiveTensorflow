@@ -29,6 +29,8 @@ _We aim to gradually expand this series by adding new articles and keep the cont
 git clone https://github.com/vahidk/TensorflowFramework.git
 ```
 
+_If you use Visual Studio Code, make sure to download the [TensorFlow Snippets](https://github.com/vahidk/tensorflow-snippets) extension, which let's you build neural network models and have them running with few keystrokes._
+
 ## TensorFlow Basics
 <a name="basics"></a>
 The most striking difference between TensorFlow and other numerical computation libraries such as NumPy is that operations in TensorFlow are symbolic. This is a powerful concept that allows TensorFlow to do all sort of things (e.g. automatic differentiation) that are not possible with imperative libraries such as NumPy. But it also comes at the cost of making it harder to grasp. Our attempt here is to demystify TensorFlow and provide some guidelines and best practices for more effective use of TensorFlow.
