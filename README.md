@@ -195,51 +195,57 @@ b = reshape(b, [0, [1, 2]])
 ## Scopes and when to use them
 <a name="scopes"></a>
 
-Variables and tensors in TensorFlow have a name attribute that is used to identify them in the graph. If you don't specify a name when creating a variable or a tensor, TensorFlow automatically assigns a name for you:
+Variables and tensors in TensorFlow have a name attribute that is used to identify them in the symbolic graph. If you don't specify a name when creating a variable or a tensor, TensorFlow automatically assigns a name for you:
 
 ```python
-a = tf.Variable(1)
-print(a.name)  # prints "Variable:0"
+a = tf.constant(1)
+print(a.name)  # prints "Const:0"
 
-b = tf.constant(1)
-print(b.name)  # prints "Const:0"
+b = tf.Variable(1)
+print(b.name)  # prints "Variable:0"
 ```
 
 You can overwrite the default name by explicitly specifying it:
 
 ```python
-a = tf.Variable(1, name="a")
-print(a.name)  # prints "a:0"
+a = tf.constant(1, name="a")
+print(a.name)  # prints "b:0"
 
-b = tf.constant(1, name="b")
+b = tf.Variable(1, name="b")
 print(b.name)  # prints "b:0"
 ```
 
-TensorFlow introduces two different context managers to alter the name of tensors and variables. The first is tf.name_scope which modifies the name of tensors:
+TensorFlow introduces two different context managers to alter the name of tensors and variables. The first is tf.name_scope:
 
 ```python
 with tf.name_scope("scope"):
-  a = tf.get_variable(name="a", shape=[])
-  print(a.name)  # prints "a:0"
+  a = tf.constant(1, name="a")
+  print(a.name)  # prints "scope/a:0"
 
-  b = tf.constant(1, name="b")
+  b = tf.Variable(1, name="b")
   print(b.name)  # prints "scope/b:0"
+
+  c = tf.get_variable(name="c", shape=[])
+  print(c.name)  # prints "c:0"
 ```
 
-The other is tf.variable_scope which modifies the name of both tensors and variables:
+Note that there are two ways to define new variables in TensorFlow, by creating a tf.Variable object or by calling tf.get_variable. Calling tf.get_variable with a new name results in creating a new variable, but if a variable with the same name exists it will raise a ValueError exception, telling us that re-declaring a variable is not allowed.
+
+tf.name_scope affects the name of tensors and variables created with tf.Variable, but doesn't impact the variables created with tf.get_variable.
+
+Unlike tf.name_scope, tf.variable_scope modifies the name of variables created with tf.get_variable as well:
 
 ```python
 with tf.variable_scope("scope"):
-  a = tf.get_variable(name="a", shape=[])
+  a = tf.constant(1, name="a")
   print(a.name)  # prints "scope/a:0"
 
-  b = tf.constant(1, name="b")
+  b = tf.Variable(1, name="b")
   print(b.name)  # prints "scope/b:0"
+
+  c = tf.get_variable(name="c", shape=[])
+  print(c.name)  # prints "scope/c:0"
 ```
-
-Note that there are two ways to define new variables in TensorFlow, by calling tf.get_variable or by creating a tf.Variable object. But we rarely use tf.Variable in practice.
-
-tf.get_variable enables variable sharing which is useful when building neural network models. Calling tf.get_variable with a new name results in creating a new variable, but if a variable with a same name exists it will raise a ValueError exception, telling us that re-declaring a variable is not allowed:
 
 ```python
 with tf.variable_scope("scope"):
