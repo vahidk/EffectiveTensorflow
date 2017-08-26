@@ -29,7 +29,7 @@ _We aim to gradually expand this series by adding new articles and keep the cont
 git clone https://github.com/vahidk/TensorflowFramework.git
 ```
 
-_If you use Visual Studio Code, make sure to download the [TensorFlow Snippets](https://github.com/vahidk/tensorflow-snippets) extension, which let's you build neural network models and have them running with few keystrokes._
+_If you use Visual Studio Code, make sure to download the [TensorFlow Snippets](https://github.com/vahidk/tensorflow-snippets) extension, which lets you build neural network models and have them running with few keystrokes._
 
 ## TensorFlow Basics
 <a name="basics"></a>
@@ -119,7 +119,7 @@ By running this piece of code you should see a result close to this:
 ```
 Which is a relatively close approximation to our parameters.
 
-This is just tip of the iceberg for what TensorFlow can do. Many problems such a optimizing large neural networks with millions of parameters can be implemented efficiently in TensorFlow in just a few lines of code. TensorFlow takes care of scaling across multiple devices, and threads, and supports a variety of platforms.
+This is just tip of the iceberg for what TensorFlow can do. Many problems such as optimizing large neural networks with millions of parameters can be implemented efficiently in TensorFlow in just a few lines of code. TensorFlow takes care of scaling across multiple devices, and threads, and supports a variety of platforms.
 
 ## Understanding static and dynamic shapes
 <a name="shapes"></a>
@@ -334,7 +334,7 @@ b = tf.constant([1., 2.])
 c = tf.reduce_sum(a + b)
 ```
 
-What do you think would the value of c would after evaluation? If you guessed 6, that’s wrong. It’s going to be 12. This is because when rank of two tensors don’t match, TensorFlow automatically expands the first dimension of the tensor with lower rank before the elementwise operation, so the result of addition would be [[2, 3], [3, 4]], and the reducing over all parameters would give us 12.
+What do you think the value of c would be after evaluation? If you guessed 6, that’s wrong. It’s going to be 12. This is because when rank of two tensors don’t match, TensorFlow automatically expands the first dimension of the tensor with lower rank before the elementwise operation, so the result of addition would be [[2, 3], [3, 4]], and the reducing over all parameters would give us 12.
 
 The way to avoid this problem is to be as explicit as possible. Had we specified which dimension we would want to reduce across, catching this bug would have been much easier:
 
@@ -354,7 +354,7 @@ The slicing op is one of the overloaded operators that can make indexing tensors
 ```python
 z = x[begin:end]  # z = tf.slice(x, [begin], [end-begin])
 ```
-Be very careful when using this op though. The slicing op is very inefficient and often better avoided, especially when the number of slices is high. To understand how inefficient this op can be let's look at an example. We want manually perform reduction across the rows of a matrix:
+Be very careful when using this op though. The slicing op is very inefficient and often better avoided, especially when the number of slices is high. To understand how inefficient this op can be let's look at an example. We want to manually perform reduction across the rows of a matrix:
 ```python
 import tensorflow as tf
 import time
@@ -1161,7 +1161,7 @@ def eval_metrics_fn(params):
     "accuracy": tf.contrib.learn.MetricSpec(tf.metrics.accuracy)
   }
 ```
-MetricSpec connects our model to the given metric function (e.g. tf.metrics.accuracy). Since our label and predictions solely include a single tensor, everything automagically works. Although if your label/prediction includes multiple tensors, you need to explicitly specify which tensors you want to pass to the metric function:
+MetricSpec connects our model to the given metric function (e.g. tf.metrics.accuracy). Since our label and predictions solely include a single tensor, everything automatically works. Although if your label/prediction includes multiple tensors, you need to explicitly specify which tensors you want to pass to the metric function:
 ```python
 tf.contrib.learn.MetricSpec(
   tf.metrics.accuracy,
@@ -1194,7 +1194,7 @@ def log_prob_from_logits(logits, axis=-1):
 def batch_gather(tensor, indices):
   """Gather in batch from a tensor of arbitrary size.
 
-  In pseduocode this module will produce the following:
+  In pseudocode this module will produce the following:
   output[i] = tf.gather(tensor[i], indices[i])
 
   Args:
