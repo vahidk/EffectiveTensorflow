@@ -830,7 +830,7 @@ You can also use assertions to validate the value of tensors at runtime:
 ```python
 check_pos = tf.assert_positive(a)
 ```
-See the official docs for a full list of assertion ops.
+See the official docs for a [full list of assertion ops](https://www.tensorflow.org/api_guides/python/check_ops).
 
 ### Logging tensor values with tf.Print
 
@@ -917,7 +917,7 @@ Now if you run the optimizer again with the correct version you can see the fina
 ```
 which are exactly what we wanted.
 
-TensorFlow summaries, and tfdbg (TensorFlow Debugger) are other tools that can be used for debugging. Please refer to the official docs to learn more.
+[TensorFlow summaries](https://www.tensorflow.org/api_guides/python/summary), and [tfdbg (TensorFlow Debugger)](https://www.tensorflow.org/api_guides/python/tfdbg) are other tools that can be used for debugging. Please refer to the official docs to learn more.
 
 ## Numerical stability in TensorFlow
 <a name="stable"></a>
