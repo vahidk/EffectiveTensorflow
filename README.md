@@ -364,7 +364,7 @@ actual_data = np.random.normal(size=[100])
 data = tf.constant(actual_data)
 ```
 
-This approach can be very efficient, but it's not very flexible. One problem with this approach is that, in order to use the model with another dataset you have to rewrite the graph. Also, you have to load all of your data at once and keep it in memory, which would only work with small datasets.
+This approach can be very efficient, but it's not very flexible. One problem with this approach is that, in order to use your model with another dataset you have to rewrite the graph. Also, you have to load all of your data at once and keep it in memory which would only work with small datasets.
 
 ### Placeholders
 Using placeholders solves both of these problems:
@@ -380,21 +380,21 @@ actual_data = np.random.normal(size=[100])
 
 tf.Session().run(prediction, feed_dic={data: actual_data})
 ```
-Placeholder operator returns a tensor whose value is fetched through the feed_dict argument in the Session:run function. Note that running session.run without feeding the value of data in this case will result in an error.
+Placeholder operator returns a tensor whose value is fetched through the feed_dict argument in Session.run function. Note that running Session.run without feeding the value of data in this case will result in an error.
 
 ### Python ops
-Another approach to feed the data is by using python ops:
+Another approach to feed the data to TensorFlow is by using Python ops:
 ```python
 def py_input_fn():
     actual_data = np.random.normal(size=[100])
     return actual_data
 
-data = tf.py_func(py_input_fn, [], (tf.float32))
+data = tf.py_func(py_input_fn, [], (tf.float32))/
 ```
-Python ops allow you to convert a regular python function to a TensorFlow operation.
+Python ops allow you to convert a regular Python function to a TensorFlow operation.
 
 ### Dataset API
-The recommended way of reading the data in TensorFlow is through the dataset API.
+The recommended way of reading the data in TensorFlow however is through the dataset API:
 ```python
 actual_data = np.random.normal(size=[100])
 dataset = tf.contrib.data.Dataset.from_tensor_slices(actual_data)
@@ -419,7 +419,7 @@ if mode == tf.estimator.ModeKeys.TRAIN:
 dataset = dataset.map(parse, num_threads=8)
 dataset = dataset.batch(batch_size)
 ```
-After reading the data with use Dataset.cache method to cache it into memory for improved efficiency. During training mode, we repeat the dataset indefinitely, allowing us to process the whole dataset many times. We also shuffle the dataset to get batches with different sample distribution. Next, we use the Dataset.map function to perform preprocessing on raw records and convert the data to usable format by the model. We then create batches of samples by calling Dataset.batch.
+After reading the data, we use Dataset.cache method to cache it into memory for improved efficiency. During the training mode, we repeat the dataset indefinitely. This allows us to process the whole dataset many times. We also shuffle the dataset to get batches with different sample distributions. Next, we use the Dataset.map function to perform preprocessing on raw records and convert the data to a usable format for the model. We then create batches of samples by calling Dataset.batch.
 
 ## Take advantage of the overloaded operators
 <a name="overloaded_ops"></a>
