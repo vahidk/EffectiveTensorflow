@@ -378,7 +378,7 @@ prediction = tf.square(data) + 1
 
 actual_data = np.random.normal(size=[100])
 
-tf.Session().run(prediction, feed_dic={data: actual_data})
+tf.Session().run(prediction, feed_dict={data: actual_data})
 ```
 Placeholder operator returns a tensor whose value is fetched through the feed_dict argument in Session.run function. Note that running Session.run without feeding the value of data in this case will result in an error.
 
@@ -389,7 +389,7 @@ def py_input_fn():
     actual_data = np.random.normal(size=[100])
     return actual_data
 
-data = tf.py_func(py_input_fn, [], (tf.float32))/
+data = tf.py_func(py_input_fn, [], (tf.float32))
 ```
 Python ops allow you to convert a regular Python function to a TensorFlow operation.
 
