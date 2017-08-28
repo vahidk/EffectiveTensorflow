@@ -6,15 +6,16 @@ Table of Contents
 2.  [Understanding static and dynamic shapes](#shapes)
 3.  [Scopes and when to use them](#scopes)
 4.  [Broadcasting the good and the ugly](#broadcast)
-5.  [Take advantage of the overloaded operators](#overloaded_ops)
-6.  [Understanding order of execution and control dependencies](#control_deps)
-7.  [Control flow operations: conditionals and loops](#control_flow)
-8.  [Prototyping kernels and advanced visualization with Python ops](#python_ops)
-9.  [Multi-GPU processing with data parallelism](#multi_gpu)
-10. [Debugging TensorFlow models](#debug)
-11. [Numerical stability in TensorFlow](#stable)
-12. [Building a neural network training framework with learn API](#tf_learn)
-13. [TensorFlow Cookbook](#cookbook)
+5.  [Feeding data to TensorFlow](#data)
+6.  [Take advantage of the overloaded operators](#overloaded_ops)
+7.  [Understanding order of execution and control dependencies](#control_deps)
+8.  [Control flow operations: conditionals and loops](#control_flow)
+9.  [Prototyping kernels and advanced visualization with Python ops](#python_ops)
+10. [Multi-GPU processing with data parallelism](#multi_gpu)
+11. [Debugging TensorFlow models](#debug)
+12. [Numerical stability in TensorFlow](#stable)
+13. [Building a neural network training framework with learn API](#tf_learn)
+14. [TensorFlow Cookbook](#cookbook)
     - [Beam search](#beam_search)
     - [Merge](#merge)
     - [Entropy](#entropy)
@@ -346,6 +347,79 @@ c = tf.reduce_sum(a + b, 0)
 ```
 
 Here the value of c would be [5, 7], and we immediately would guess based on the shape of the result that there’s something wrong. A general rule of thumb is to always specify the dimensions in reduction operations and when using tf.squeeze.
+
+## Feeding data to TensorFlow
+<a name="data"></a>
+
+TensorFlow is designed to work efficiently with large amount of data. So it's important not to starve your TensorFlow model in order to maximize its performance. There are various ways that you can feed your data to TensorFlow.
+
+### Constants
+The simplest approach is to embed the data in your graph as a constant:
+```python
+import tensorflow as tf
+import numpy as np
+
+actual_data = np.random.normal(size=[100])
+
+data = tf.constant(actual_data)
+```
+
+This approach can be very efficient, but it's not very flexible. One problem with this approach is that, in order to use the model with another dataset you have to rewrite the graph. Also, you have to load all of your data at once and keep it in memory, which would only work with small datasets.
+
+### Placeholders
+Using placeholders solves both of these problems:
+```python
+import tensorflow as tf
+import numpy as np
+
+data = tf.placeholder(tf.float32)
+
+prediction = tf.square(data) + 1
+
+actual_data = np.random.normal(size=[100])
+
+tf.Session().run(prediction, feed_dic={data: actual_data})
+```
+Placeholder operator returns a tensor whose value is fetched through the feed_dict argument in the Session:run function. Note that running session.run without feeding the value of data in this case will result in an error.
+
+### Python ops
+Another approach to feed the data is by using python ops:
+```python
+def py_input_fn():
+    actual_data = np.random.normal(size=[100])
+    return actual_data
+
+data = tf.py_func(py_input_fn, [], (tf.float32))
+```
+Python ops allow you to convert a regular python function to a TensorFlow operation.
+
+### Dataset API
+The recommended way of reading the data in TensorFlow is through the dataset API.
+```python
+actual_data = np.random.normal(size=[100])
+dataset = tf.contrib.data.Dataset.from_tensor_slices(actual_data)
+data = dataset.make_one_shot_iterator().get_next()
+```
+
+If you need to read your data from file, it may be more efficient to write it in TFrecord format and use TFRecordDataset to read it:
+```python
+dataset = tf.contrib.data.Dataset.TFRecordDataset(path_to_data)
+```
+See the [official docs](https://www.tensorflow.org/api_guides/python/reading_data#Reading_from_files) for an example of how to write your dataset in TFrecord format.
+
+Dataset API allows you to make efficient data processing pipelines easily. For example this is how we process our data in the accompanied framework (See
+[trainer.py](https://github.com/vahidk/TensorflowFramework/blob/master/trainer.py)):
+
+```python
+dataset = ...
+dataset = dataset.cache()
+if mode == tf.estimator.ModeKeys.TRAIN:
+    dataset = dataset.repeat()
+    dataset = dataset.shuffle(batch_size * 5)
+dataset = dataset.map(parse, num_threads=8)
+dataset = dataset.batch(batch_size)
+```
+After reading the data with use Dataset.cache method to cache it into memory for improved efficiency. During training mode, we repeat the dataset indefinitely, allowing us to process the whole dataset many times. We also shuffle the dataset to get batches with different sample distribution. Next, we use the Dataset.map function to perform preprocessing on raw records and convert the data to usable format by the model. We then create batches of samples by calling Dataset.batch.
 
 ## Take advantage of the overloaded operators
 <a name="overloaded_ops"></a>
@@ -1024,7 +1098,7 @@ For simplicity, in most of the examples here we manually create sessions and we 
 
 When experimenting with neural network models you usually have a training/test split. You want to train your model on the training set, and once in a while evaluate it on test set and compute some metrics. You also need to store the model parameters as a checkpoint, and ideally you want to be able to stop and resume training. TensorFlow's learn API is designed to make this job easier, letting us focus on developing the actual model.
 
-The most basic way of using tf.learn API is to use tf.Estimator object directly. You need to define a model function that defines a loss function, a train op and one or a set of predictions:
+The most basic way of using tf.learn API is to use tf.Estimator object directly. You need to define a model function that defines a loss function, a train op, one or a set of predictions, and optinoally a set of metric ops for evaluation:
 ```python
 import tensorflow as tf
 
@@ -1032,35 +1106,36 @@ def model_fn(features, labels, mode, params):
     predictions = ...
     loss = ...
     train_op = ...
-    return tf.contrib.learn.ModelFnOps(
+    metric_ops = ...
+    return tf.estimator.EstimatorSpec(
         mode=mode,
         predictions=predictions,
         loss=loss,
-        train_op=train_op)
+        train_op=train_op,
+        eval_metric_ops=metric_ops)
 
 params = ...
 run_config = tf.contrib.learn.RunConfig(model_dir=FLAGS.output_dir)
-estimator = tf.contrib.learn.Estimator(
+estimator = tf.estimator.Estimator(
     model_fn=model_fn, config=run_config, params=params)
 ```
 
-To train the model you would then simply call Estimator.fit() function while providing an input function to read the data.
+To train the model you would then simply call Estimator.train() function while providing an input function to read the data.
 ```python
 def input_fn():
     features = ...
     labels = ...
     return features, labels
 
-estimator.fit(input_fn=input_fn, max_steps=...)
+estimator.train(input_fn=input_fn, max_steps=...)
 ```
 
-and to evaluate the model, call Estimator.evaluate(), providing a set of metrics:
+and to evaluate the model, simply call Estimator.evaluate():
 ```
-metrics = { "accuracy": tf.metrics.accuracy }
-estimator.evaluate(input_fn=input_fn, metrics=metrics)
+estimator.evaluate(input_fn=input_fn)
 ```
 
-Estimator object might be good enough for simple cases, but TensorFlow provides an even higher level object called Experiment which provides some additional useful functionality. Creating an experiment object is very easy:
+Estimator object might be good enough for simple cases, but TensorFlow provides a higher level object called Experiment which provides some additional useful functionality. Creating an experiment object is very easy:
 
 ```python
 experiment = tf.contrib.learn.Experiment(
@@ -1084,23 +1159,22 @@ tf.flags.DEFINE_string("schedule", "train_and_evaluate", "Schedule.")
 tf.flags.DEFINE_string("hparams", "", "Hyper parameters.")
 
 FLAGS = tf.flags.FLAGS
-learn = tf.contrib.learn
 
 def experiment_fn(run_config, hparams):
-  estimator = learn.Estimator(
+  estimator = tf.estimator.Estimator(
     model_fn=make_model_fn(), config=run_config, params=hparams)
-  return learn.Experiment(
+  return tf.contrib.learn.Experiment(
     estimator=estimator,
-    train_input_fn=make_input_fn(learn.ModeKeys.TRAIN, hparams),
-    eval_input_fn=make_input_fn(learn.ModeKeys.EVAL, hparams),
+    train_input_fn=make_input_fn(tf.estimator.ModeKeys.TRAIN, hparams),
+    eval_input_fn=make_input_fn(tf.estimator.ModeKeys.EVAL, hparams),
     eval_metrics=eval_metrics_fn(hparams))
 
 def main(unused_argv):
-  run_config = learn.RunConfig(model_dir=FLAGS.output_dir)
+  run_config = tf.contrib.learn.RunConfig(model_dir=FLAGS.output_dir)
   hparams = tf.contrib.training.HParams()
   hparams.parse(FLAGS.hparams)
 
-  estimator = learn.learn_runner.run(
+  estimator = tf.contrib.learn.learn_runner.run(
     experiment_fn=experiment_fn,
     run_config=run_config,
     schedule=FLAGS.schedule,
@@ -1111,64 +1185,17 @@ if __name__ == "__main__":
 ```
 The schedule flag decides which member function of the Experiment object gets called. So, if you for example set schedule to "train_and_evaluate", experiment.train_and_evaluate() would be called.
 
-Now let's have a look at how we might actually write an input function. One way to do this  is through python ops (See [this item](#python_ops) for more information on python ops).
+The input function can return two tensors (or dictionaries of tensors) providing the features and labels to be passed to the model.
+
 ```python
 def input_fn():
-    def _py_input_fn():
-        # read a new example in python
-        feature = ...
-        label = ...
-        return feature, label
-
-    # Convert that to tensors
-    feature, label = tf.py_func(_py_input_fn, [], (tf.string, tf.int64))
-
-    feature_batch, label_batch = tf.train.shuffle_batch(
-        [feature, label], batch_size=..., capacity=...,
-        min_after_dequeue=...)
-
-    return feature_batch, label_batch
+    features = ...
+    labels = ...
+    return features, labels
 ```
+See [mnist.py](https://github.com/vahidk/TensorflowFramework/blob/master/dataset/mnist.py) for an example of how to read your data with the dataset API. To learn about various ways of reading your data in TensorFlow refer to [this item](#data).
 
-An alternative way is to write your data as TFRecords format and use the multi-threaded TFRecordReader object to read the data:
-```python
-def input_fn():
-    features = {
-        "image": tf.FixedLenFeature([], tf.string),
-        "label": tf.FixedLenFeature([], tf.int64),
-    }
-    tensors = tf.contrib.learn.read_batch_features(
-        file_pattern=...,
-        batch_size=...,
-        features=features,
-        reader=tf.TFRecordReader)
-```
-See [mnist.py](https://github.com/vahidk/TensorflowFramework/blob/master/dataset/mnist.py) for an example of how to convert your data to TFRecords format.
-
-The framework also comes with a simple convolutional network classifier in [cnn_classifier.py](https://github.com/vahidk/TensorflowFramework/blob/master/model/cnn_classifier.py) that includes an example model and evaluation metric:
-
-```python
-def model_fn(features, labels, mode, params):
-  images = features["image"]
-  labels = labels["label"]
-
-  predictions = ...
-  loss = ...
-
-  return {"predictions": predictions}, loss
-
-def eval_metrics_fn(params):
-  return {
-    "accuracy": tf.contrib.learn.MetricSpec(tf.metrics.accuracy)
-  }
-```
-MetricSpec connects our model to the given metric function (e.g. tf.metrics.accuracy). Since our label and predictions solely include a single tensor, everything automatically works. Although if your label/prediction includes multiple tensors, you need to explicitly specify which tensors you want to pass to the metric function:
-```python
-tf.contrib.learn.MetricSpec(
-  tf.metrics.accuracy,
-  label_key="label",
-  prediction_key="predictions")
-```
+The framework also comes with a simple convolutional network classifier in [cnn_classifier.py](https://github.com/vahidk/TensorflowFramework/blob/master/model/cnn_classifier.py) that includes an example model.
 
 And that's it! This is all you need to get started with TensorFlow learn API. I recommend to have a look at the framework [source code](https://github.com/vahidk/TensorFlowFramework) and see the official python API to learn more about the learn API.
 
