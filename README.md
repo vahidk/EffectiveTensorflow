@@ -21,6 +21,7 @@ Table of Contents
     - [Entropy](#entropy)
     - [KL-Divergence](#kld)
     - [Make parallel](#make_parallel)
+    - [Leaky Relu](#leaky_relu)
 
 ---
 
@@ -1405,4 +1406,11 @@ def make_parallel(fn, num_gpus, **kwargs):
         out_split.append(fn(**{k : v[i] for k, v in in_splits.items()}))
 
   return tf.concat(out_split, axis=0)
+```
+
+## Leaky relu <a name="leaky_relu"></a>
+```python
+def leaky_relu(tensor, alpha=0.1):
+    """Computes the leaky rectified linear activation."""
+    retrun tf.maximum(x, alpha * x)
 ```
