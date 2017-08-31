@@ -1264,7 +1264,7 @@ def rnn_beam_search(update_fn, initial_state, sequence_length, beam_width,
   sel_sum_logprobs = tf.log([[1.] + [0.] * (beam_width - 1)])
 
   ids = tf.tile([[begin_token_id]], [batch_size, beam_width])
-  sel_ids = tf.expand_dims(ids, axis=2)
+  sel_ids = tf.zeros([batch_size, beam_width, 0], dtype=ids.dtype)
 
   mask = tf.ones([batch_size, beam_width], dtype=tf.float32)
 
