@@ -1121,7 +1121,7 @@ estimator = tf.estimator.Estimator(
     model_fn=model_fn, config=run_config, params=params)
 ```
 
-To train the model you would then simply call Estimator.train() function while providing an input function to read the data.
+To train the model you would then simply call Estimator.train() function while providing an input function to read the data:
 ```python
 def input_fn():
     features = ...
@@ -1142,11 +1142,10 @@ Estimator object might be good enough for simple cases, but TensorFlow provides 
 experiment = tf.contrib.learn.Experiment(
     estimator=estimator,
     train_input_fn=train_input_fn,
-    eval_input_fn=eval_input_fn,
-    eval_metrics=eval_metrics)
+    eval_input_fn=eval_input_fn)
 ```
 
-Now we can call train_and_evaluate function to compute the metrics while training.
+Now we can call train_and_evaluate function to compute the metrics while training:
 ```
 experiment.train_and_evaluate()
 ```
@@ -1163,12 +1162,13 @@ FLAGS = tf.flags.FLAGS
 
 def experiment_fn(run_config, hparams):
   estimator = tf.estimator.Estimator(
-    model_fn=make_model_fn(), config=run_config, params=hparams)
+    model_fn=make_model_fn(),
+    config=run_config,
+    params=hparams)
   return tf.contrib.learn.Experiment(
     estimator=estimator,
     train_input_fn=make_input_fn(tf.estimator.ModeKeys.TRAIN, hparams),
-    eval_input_fn=make_input_fn(tf.estimator.ModeKeys.EVAL, hparams),
-    eval_metrics=eval_metrics_fn(hparams))
+    eval_input_fn=make_input_fn(tf.estimator.ModeKeys.EVAL, hparams))
 
 def main(unused_argv):
   run_config = tf.contrib.learn.RunConfig(model_dir=FLAGS.output_dir)
@@ -1186,8 +1186,7 @@ if __name__ == "__main__":
 ```
 The schedule flag decides which member function of the Experiment object gets called. So, if you for example set schedule to "train_and_evaluate", experiment.train_and_evaluate() would be called.
 
-The input function can return two tensors (or dictionaries of tensors) providing the features and labels to be passed to the model.
-
+The input function returns two tensors (or dictionaries of tensors) providing the features and labels to be passed to the model:
 ```python
 def input_fn():
     features = ...
