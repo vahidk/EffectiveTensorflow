@@ -214,7 +214,7 @@ You can overwrite the default name by explicitly specifying it:
 
 ```python
 a = tf.constant(1, name="a")
-print(a.name)  # prints "b:0"
+print(a.name)  # prints "a:0"
 
 b = tf.Variable(1, name="b")
 print(b.name)  # prints "b:0"
