@@ -972,7 +972,7 @@ import numpy as np
 
 def softmax_entropy(logits, dim=-1):
     plogp = tf.nn.softmax(logits, dim) * tf.nn.log_softmax(logits, dim)
-    return -tf.reduce_sum(nplogp, dim)
+    return -tf.reduce_sum(plogp, dim)
 
 w = tf.get_variable("w", shape=[5])
 y = -softmax_entropy(w)
