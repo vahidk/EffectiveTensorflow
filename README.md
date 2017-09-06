@@ -933,12 +933,12 @@ Let's look at an example:
 ```python
 import tensorflow as tf
 
-def non_differentiable_entropy(logits):
+def non_differentiable_softmax_entropy(logits):
     probs = tf.nn.softmax(logits)
     return tf.nn.softmax_cross_entropy_with_logits(labels=probs, logits=logits)
 
 w = tf.get_variable("w", shape=[5])
-y = -non_differentiable_entropy(w)
+y = -non_differentiable_softmax_entropy(w)
 
 opt = tf.train.AdamOptimizer()
 train_op = opt.minimize(y)
@@ -970,13 +970,12 @@ Now let's fix our function with a differentiable version of the entropy and chec
 import tensorflow as tf
 import numpy as np
 
-def entropy(logits, dim=-1):
-    probs = tf.nn.softmax(logits, dim)
-    nplogp = probs * (tf.reduce_logsumexp(logits, dim, keep_dims=True) - logits)
-    return tf.reduce_sum(nplogp, dim)
+def softmax_entropy(logits, dim=-1):
+    plogp = tf.nn.softmax(logits, dim) * tf.nn.log_softmax(logits, dim)
+    return -tf.reduce_sum(nplogp, dim)
 
 w = tf.get_variable("w", shape=[5])
-y = -entropy(w)
+y = -softmax_entropy(w)
 
 print(w.get_shape())
 print(y.get_shape())
