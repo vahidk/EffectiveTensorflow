@@ -34,8 +34,6 @@ _We aim to gradually expand this series by adding new articles and keep the cont
 git clone https://github.com/vahidk/TensorflowFramework.git
 ```
 
-_If you use Visual Studio Code, make sure to download the [TensorFlow Snippets](https://github.com/vahidk/tensorflow-snippets) extension, which lets you build neural network models and have them running with few keystrokes._
-
 ## TensorFlow Basics
 <a name="basics"></a>
 The most striking difference between TensorFlow and other numerical computation libraries such as NumPy is that operations in TensorFlow are symbolic. This is a powerful concept that allows TensorFlow to do all sort of things (e.g. automatic differentiation) that are not possible with imperative libraries such as NumPy. But it also comes at the cost of making it harder to grasp. Our attempt here is to demystify TensorFlow and provide some guidelines and best practices for more effective use of TensorFlow.
@@ -1196,7 +1194,7 @@ def input_fn():
 ```
 See [mnist.py](https://github.com/vahidk/TensorflowFramework/blob/master/dataset/mnist.py) for an example of how to read your data with the dataset API. To learn about various ways of reading your data in TensorFlow refer to [this item](#data).
 
-The framework also comes with a simple convolutional network classifier in [cnn_classifier.py](https://github.com/vahidk/TensorflowFramework/blob/master/model/cnn_classifier.py) that includes an example model.
+The framework also comes with a simple convolutional network classifier in [alexnet.py](https://github.com/vahidk/TensorflowFramework/blob/master/model/alexnet.py) that includes an example model.
 
 And that's it! This is all you need to get started with TensorFlow learn API. I recommend to have a look at the framework [source code](https://github.com/vahidk/TensorFlowFramework) and see the official python API to learn more about the learn API.
 
