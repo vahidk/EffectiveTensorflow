@@ -1422,6 +1422,8 @@ def batch_normalization(tensor, training=False, epsilon=0.001, momentum=0.9,
 
   with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
     train_op = optimizer.minimize(loss)
+
+  Based on: https://arxiv.org/abs/1502.03167
   """
   with tf.variable_scope(name, default_name="batch_normalization"):
     channels = tensor.shape.as_list()[-1]
@@ -1469,8 +1471,11 @@ def batch_normalization(tensor, training=False, epsilon=0.001, momentum=0.9,
 
 ## Squeeze and excitation <a name="squeeze_excite"></a>
 ```python
-def squeeze_and_excite(tensor, ratio):
-  """Squeeze and excite layer."""
+def squeeze_and_excite(tensor, ratio=16):
+  """Apply squeeze/excite on given 4-D tensor.
+  
+  Based on: https://arxiv.org/abs/1709.01507
+  """
   original = tensor
   units = tensor.shape.as_list()[-1]
   tensor = tf.reduce_mean(tensor, [1, 2], keep_dims=True)
