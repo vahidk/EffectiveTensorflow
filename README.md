@@ -1471,18 +1471,19 @@ def batch_normalization(tensor, training=False, epsilon=0.001, momentum=0.9,
 
 ## Squeeze and excitation <a name="squeeze_excite"></a>
 ```python
-def squeeze_and_excite(tensor, ratio=16):
+def squeeze_and_excite(tensor, ratio=16, name=None):
   """Apply squeeze/excite on given 4-D tensor.
   
   Based on: https://arxiv.org/abs/1709.01507
   """
-  original = tensor
-  units = tensor.shape.as_list()[-1]
-  tensor = tf.reduce_mean(tensor, [1, 2], keep_dims=True)
-  tensor = tf.layers.dense(tensor, units / ratio, use_bias=False)
-  tensor = tf.nn.relu(tensor)
-  tensor = tf.layers.dense(tensor, units, use_bias=False)
-  tensor = tf.nn.sigmoid(tensor)
-  tensor = original * tensor
+  with tf.variable_scope(name, default_name="squeeze_and_excite"):
+    original = tensor
+    units = tensor.shape.as_list()[-1]
+    tensor = tf.reduce_mean(tensor, [1, 2], keep_dims=True)
+    tensor = tf.layers.dense(tensor, units / ratio, use_bias=False)
+    tensor = tf.nn.relu(tensor)
+    tensor = tf.layers.dense(tensor, units, use_bias=False)
+    tensor = tf.nn.sigmoid(tensor)
+    tensor = original * tensor
   return tensor
 ```
