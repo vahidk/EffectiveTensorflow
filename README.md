@@ -1408,7 +1408,7 @@ def make_parallel(fn, num_gpus, **kwargs):
 ```python
 def leaky_relu(tensor, alpha=0.1):
     """Computes the leaky rectified linear activation."""
-    return tf.maximum(x, alpha * x)
+    return tf.maximum(tensor, alpha * tensor)
 ```
 
 ## Batch normalization <a name="batch_norm"></a>
