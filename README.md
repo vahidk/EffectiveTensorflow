@@ -405,7 +405,7 @@ data = dataset.make_one_shot_iterator().get_next()
 
 If you need to read your data from file, it may be more efficient to write it in TFrecord format and use TFRecordDataset to read it:
 ```python
-dataset = tf.contrib.data.Dataset.TFRecordDataset(path_to_data)
+dataset = tf.contrib.data.TFRecordDataset(path_to_data)
 ```
 See the [official docs](https://www.tensorflow.org/api_guides/python/reading_data#Reading_from_files) for an example of how to write your dataset in TFrecord format.
 
