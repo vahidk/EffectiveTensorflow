@@ -880,7 +880,7 @@ But the same function also does batch matrix multiplication:
 ```python
 a = tf.random_uniform([10, 2, 3])
 b = tf.random_uniform([10, 3, 4])
-tf.matmul(a, b)  # c is a tensor of shape [10, 2, 4]
+c = tf.matmul(a, b)  # c is a tensor of shape [10, 2, 4]
 ```
 
 Another example that we talked about before in the [broadcasting](#broadcast) section is add operation which supports broadcasting:
