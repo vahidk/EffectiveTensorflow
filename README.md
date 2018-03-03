@@ -269,13 +269,21 @@ with tf.variable_scope("scope", reuse=True):
 
 This becomes handy for example when using built-in neural network layers:
 ```python
-features1 = tf.layers.conv2d(image1, filters=32, kernel_size=3)
+with tf.variable_scope('my_scope'):
+  features1 = tf.layers.conv2d(image1, filters=32, kernel_size=3)
 # Use the same convolution weights to process the second image:
-with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+with tf.variable_scope('my_scope', reuse=True):
   features2 = tf.layers.conv2d(image2, filters=32, kernel_size=3)
 ```
 
-This syntax may not look very clean to some. Especially if you want to do lots of variable sharing keeping track of when to define new variables and when to reuse them can be cumbersome and error prone. TensorFlow templates are designed to handle this automatically:
+Alternatively you can set reuse to tf.AUTO_REUSE which tells TensorFlow to create a new variable if a variable with the same name doesn't exist, and reuse otherwise:
+```python
+with tf.variable_scope("scope", reuse=tf.AUTO_REUSE):
+  features1 = tf.layers.conv2d(image1, filters=32, kernel_size=3)
+  features2 = tf.layers.conv2d(image2, filters=32, kernel_size=3)
+```
+
+If you want to do lots of variable sharing keeping track of when to define new variables and when to reuse them can be cumbersome and error prone. tf.AUTO_REUSE simplifies this task but adds the risk of sharing variables that weren't supposed to be shared. TensorFlow templates are another way of tackling the same problem without this risk:
 ```python
 conv3x32 = tf.make_template("conv3x32", lambda x: tf.layers.conv2d(x, 32, 3))
 features1 = conv3x32(image1)
@@ -800,7 +808,7 @@ def make_parallel(fn, num_gpus, **kwargs):
     out_split = []
     for i in range(num_gpus):
         with tf.device(tf.DeviceSpec(device_type="GPU", device_index=i)):
-            with tf.variable_scope(tf.get_variable_scope(), reuse=i > 0):
+            with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
                 out_split.append(fn(**{k : v[i] for k, v in in_splits.items()}))
 
     return tf.concat(out_split, axis=0)
@@ -1398,7 +1406,7 @@ def make_parallel(fn, num_gpus, **kwargs):
   out_split = []
   for i in range(num_gpus):
     with tf.device(tf.DeviceSpec(device_type="GPU", device_index=i)):
-      with tf.variable_scope(tf.get_variable_scope(), reuse=i > 0):
+      with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
         out_split.append(fn(**{k : v[i] for k, v in in_splits.items()}))
 
   return tf.concat(out_split, axis=0)
