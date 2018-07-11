@@ -280,6 +280,8 @@ Alternatively you can set reuse to tf.AUTO_REUSE which tells TensorFlow to creat
 ```python
 with tf.variable_scope("scope", reuse=tf.AUTO_REUSE):
   features1 = tf.layers.conv2d(image1, filters=32, kernel_size=3)
+  
+with tf.variable_scope("scope", reuse=tf.AUTO_REUSE):
   features2 = tf.layers.conv2d(image2, filters=32, kernel_size=3)
 ```
 
