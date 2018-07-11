@@ -25,7 +25,6 @@ Table of Contents
     - [Make parallel](#make_parallel)
     - [Leaky Relu](#leaky_relu)
     - [Batch normalization](#batch_norm)
-    - [Squeeze and excitation](#squeeze_excite)
 ---
 
 _We aim to gradually expand this series by adding new articles and keep the content up to date with the latest releases of TensorFlow API. If you have suggestions on how to improve this series or find the explanations ambiguous, feel free to create an issue, send patches, or reach out by email._
@@ -1476,24 +1475,5 @@ def batch_normalization(tensor, training=False, epsilon=0.001, momentum=0.9,
       tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_mean)
       tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_variance)
 
-  return tensor
-```
-
-## Squeeze and excitation <a name="squeeze_excite"></a>
-```python
-def squeeze_and_excite(tensor, ratio=16, name=None):
-  """Apply squeeze/excite on given 4-D tensor.
-  
-  Based on: https://arxiv.org/abs/1709.01507
-  """
-  with tf.variable_scope(name, default_name="squeeze_and_excite"):
-    original = tensor
-    units = tensor.shape.as_list()[-1]
-    tensor = tf.reduce_mean(tensor, [1, 2], keep_dims=True)
-    tensor = tf.layers.dense(tensor, units / ratio, use_bias=False)
-    tensor = tf.nn.relu(tensor)
-    tensor = tf.layers.dense(tensor, units, use_bias=False)
-    tensor = tf.nn.sigmoid(tensor)
-    tensor = original * tensor
   return tensor
 ```
