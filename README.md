@@ -2,6 +2,7 @@
 
 Table of Contents
 =================
+## Part I: TensorFlow Fundamentals
 1.  [TensorFlow Basics](#basics)
 2.  [Understanding static and dynamic shapes](#shapes)
 3.  [Scopes and when to use them](#scopes)
@@ -15,16 +16,17 @@ Table of Contents
 11. [Debugging TensorFlow models](#debug)
 12. [Numerical stability in TensorFlow](#stable)
 13. [Building a neural network training framework with learn API](#tf_learn)
-14. [TensorFlow Cookbook](#cookbook)
-    - [Get shape](#get_shape)
-    - [Batch gather](#batch_gather)
-    - [Beam search](#beam_search)
-    - [Merge](#merge)
-    - [Entropy](#entropy)
-    - [KL-Divergence](#kld)
-    - [Make parallel](#make_parallel)
-    - [Leaky Relu](#leaky_relu)
-    - [Batch normalization](#batch_norm)
+
+## Part II: TensorFlow Cookbook
+1. [Get shape](#get_shape)
+2. [Batch gather](#batch_gather)
+3. [Beam search](#beam_search)
+4. [Merge](#merge)
+5. [Entropy](#entropy)
+6. [KL-Divergence](#kld)
+7. [Make parallel](#make_parallel)
+8. [Leaky Relu](#leaky_relu)
+9. [Batch normalization](#batch_norm)
 ---
 
 _We aim to gradually expand this series by adding new articles and keep the content up to date with the latest releases of TensorFlow API. If you have suggestions on how to improve this series or find the explanations ambiguous, feel free to create an issue, send patches, or reach out by email._
@@ -33,6 +35,9 @@ _We aim to gradually expand this series by adding new articles and keep the cont
 ```
 git clone https://github.com/vahidk/TensorflowFramework.git
 ```
+
+# Part I: TensorFlow Fundamentals
+<a name="fundamentals"></a>
 
 ## TensorFlow Basics
 <a name="basics"></a>
@@ -1208,7 +1213,7 @@ The framework also comes with a simple convolutional network classifier in [alex
 
 And that's it! This is all you need to get started with TensorFlow learn API. I recommend to have a look at the framework [source code](https://github.com/vahidk/TensorFlowFramework) and see the official python API to learn more about the learn API.
 
-## TensorFlow Cookbook
+# Part II: TensorFlow Cookbook
 <a name="cookbook"></a>
 This section includes implementation of a set of common operations in TensorFlow.
 
