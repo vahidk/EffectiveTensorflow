@@ -326,8 +326,8 @@ d = tf.layers.dense(c, 10, activation=tf.nn.relu)
 But this can be done more efficiently with broadcasting. We use the fact that f(m(x + y)) is equal to f(mx + my). So we can do the linear operations separately and use broadcasting to do implicit concatenation:
 
 ```python
-pa = tf.layers.dense(a, 10, activation=None)
-pb = tf.layers.dense(b, 10, activation=None)
+pa = tf.layers.dense(a, 10)
+pb = tf.layers.dense(b, 10)
 d = tf.nn.relu(pa + pb)
 ```
 
@@ -335,8 +335,8 @@ In fact this piece of code is pretty general and can be applied to tensors of ar
 
 ```python
 def merge(a, b, units, activation=tf.nn.relu):
-    pa = tf.layers.dense(a, units, activation=None)
-    pb = tf.layers.dense(b, units, activation=None)
+    pa = tf.layers.dense(a, units)
+    pb = tf.layers.dense(b, units)
     c = pa + pb
     if activation is not None:
         c = activation(c)
@@ -413,7 +413,7 @@ Python ops allow you to convert a regular Python function to a TensorFlow operat
 The recommended way of reading the data in TensorFlow however is through the dataset API:
 ```python
 actual_data = np.random.normal(size=[100])
-dataset = tf.contrib.data.Dataset.from_tensor_slices(actual_data)
+dataset = tf.data.Dataset.from_tensor_slices(actual_data)
 data = dataset.make_one_shot_iterator().get_next()
 ```
 
@@ -1340,7 +1340,7 @@ def merge(tensors, units, activation=tf.nn.relu, name=None, **kwargs):
     projs = []
     for i, tensor in enumerate(tensors):
       proj = tf.layers.dense(
-          tensor, units, activation=None,
+          tensor, units,
           name="proj_%d" % i,
           **kwargs)
       projs.append(proj)
