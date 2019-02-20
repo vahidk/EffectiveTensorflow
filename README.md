@@ -191,7 +191,7 @@ def reshape(tensor, dims_list):
     elif all([isinstance(shape[d], int) for d in dims]):
       dims_prod.append(np.prod([shape[d] for d in dims]))
     else:
-      dims_prod.append(tf.prod([shape[d] for d in dims]))
+      dims_prod.append(tf.reduce_prod([shape[d] for d in dims]))
   tensor = tf.reshape(tensor, dims_prod)
   return tensor
 ```
