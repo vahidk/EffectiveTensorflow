@@ -50,7 +50,7 @@ print(z)
 ```
 Similar to NumPy TensorFlow 2 also immediately performs the computation and produces the result. The only difference is that TensorFlow uses tf.Tensor type to store the results which can be easily converted to NumPy, by calling tf.Tensor.numpy() member function: 
 
-```
+```python
 print(z.numpy())
 ```
 
@@ -105,14 +105,14 @@ for _ in range(1000):
 print(w.numpy())
 ```
 By running this piece of code you should see a result close to this:
-```
+```python
 [4.9924135, 0.00040895029, 3.4504161]
 ```
 Which is a relatively close approximation to our parameters.
 
 Note that in the above code we are running Tensorflow in imperative mode (i.e. operations get instantly executed), which is not very efficient. TensorFlow 2.0 can also turn a given piece of python code into a graph which can then optimized and efficiently parallelized on GPUs and TPUs. To get all those benefits we simply need to decorate the train_step function with tf.function decorator:
 
-```
+```python
 @tf.function
 def train_step():
     x, y = generate_data()
