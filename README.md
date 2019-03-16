@@ -19,7 +19,6 @@ pip install tensorflow==2.0.0-alpha0
 ```
 
 _We aim to gradually expand this series by adding new articles and keep the content up to date with the latest releases of TensorFlow API. If you have suggestions on how to improve this series or find the explanations ambiguous, feel free to create an issue, send patches, or reach out by email._
-```
 
 # Part I: TensorFlow 2.0 Fundamentals
 <a name="fundamentals"></a>
