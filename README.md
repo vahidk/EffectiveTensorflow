@@ -29,6 +29,8 @@ Table of Contents
 9. [Batch normalization](#batch_norm)
 ---
 
+_We updated the guide to follow the newly released TensorFlow 2.x API. Click [here for v1 branch](https://github.com/vahidk/EffectiveTensorflow/tree/v1), and [here for v2 branch](https://github.com/vahidk/EffectiveTensorflow/tree/v2)._
+
 _We aim to gradually expand this series by adding new articles and keep the content up to date with the latest releases of TensorFlow API. If you have suggestions on how to improve this series or find the explanations ambiguous, feel free to create an issue, send patches, or reach out by email._
 
  _We encourage you to also check out the accompanied neural network training framework built on top of tf.contrib.learn API. The [framework](https://github.com/vahidk/TensorflowFramework) can be downloaded separately:_
