@@ -236,7 +236,7 @@ This took 0.01 seconds. Of course, the right way to do this simple reduction is 
 ```python
 z = tf.reduce_sum(x, axis=0)
 ```
-This took 0.0001 seconds, which is 300x faster than the original implementation.
+This took 0.0001 seconds, which is 100x faster than the original implementation.
 
 TensorFlow also overloads a range of arithmetic and logical operators:
 ```python
