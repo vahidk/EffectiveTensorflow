@@ -33,7 +33,7 @@ _We updated the guide to follow the newly released TensorFlow 2.x API. Click [he
 
 _We aim to gradually expand this series by adding new articles and keep the content up to date with the latest releases of TensorFlow API. If you have suggestions on how to improve this series or find the explanations ambiguous, feel free to create an issue, send patches, or reach out by email._
 
- _We encourage you to also check out the accompanied neural network training framework built on top of tf.contrib.learn API. The [framework](https://github.com/vahidk/TensorflowFramework) can be downloaded separately:_
+ _We encourage you to also check out the accompanied neural network training framework built on top of tf.estimator API. The [framework](https://github.com/vahidk/TensorflowFramework) can be downloaded separately:_
 ```
 git clone https://github.com/vahidk/TensorflowFramework.git
 ```
@@ -421,7 +421,7 @@ data = dataset.make_one_shot_iterator().get_next()
 
 If you need to read your data from file, it may be more efficient to write it in TFrecord format and use TFRecordDataset to read it:
 ```python
-dataset = tf.contrib.data.TFRecordDataset(path_to_data)
+dataset = tf.data.TFRecordDataset(path_to_data)
 ```
 See the [official docs](https://www.tensorflow.org/api_guides/python/reading_data#Reading_from_files) for an example of how to write your dataset in TFrecord format.
 
@@ -1132,75 +1132,20 @@ def model_fn(features, labels, mode, params):
         eval_metric_ops=metric_ops)
 
 params = ...
-run_config = tf.contrib.learn.RunConfig(model_dir=FLAGS.output_dir)
+run_config = tf.estimator.RunConfig(model_dir=FLAGS.output_dir)
 estimator = tf.estimator.Estimator(
     model_fn=model_fn, config=run_config, params=params)
 ```
 
 To train the model you would then simply call Estimator.train() function while providing an input function to read the data:
 ```python
-def input_fn():
-    features = ...
-    labels = ...
-    return features, labels
-
 estimator.train(input_fn=input_fn, max_steps=...)
 ```
 
 and to evaluate the model, simply call Estimator.evaluate():
-```
+```python
 estimator.evaluate(input_fn=input_fn)
 ```
-
-Estimator object might be good enough for simple cases, but TensorFlow provides a higher level object called Experiment which provides some additional useful functionality. Creating an experiment object is very easy:
-
-```python
-experiment = tf.contrib.learn.Experiment(
-    estimator=estimator,
-    train_input_fn=train_input_fn,
-    eval_input_fn=eval_input_fn)
-```
-
-Now we can call train_and_evaluate function to compute the metrics while training:
-```
-experiment.train_and_evaluate()
-```
-
-An even higher level way of running experiments is by using learn_runner.run() function. Here's how our main function looks like in the provided framework:
-```python
-import tensorflow as tf
-
-tf.flags.DEFINE_string("output_dir", "", "Optional output dir.")
-tf.flags.DEFINE_string("schedule", "train_and_evaluate", "Schedule.")
-tf.flags.DEFINE_string("hparams", "", "Hyper parameters.")
-
-FLAGS = tf.flags.FLAGS
-
-def experiment_fn(run_config, hparams):
-  estimator = tf.estimator.Estimator(
-    model_fn=make_model_fn(),
-    config=run_config,
-    params=hparams)
-  return tf.contrib.learn.Experiment(
-    estimator=estimator,
-    train_input_fn=make_input_fn(tf.estimator.ModeKeys.TRAIN, hparams),
-    eval_input_fn=make_input_fn(tf.estimator.ModeKeys.EVAL, hparams))
-
-def main(unused_argv):
-  run_config = tf.contrib.learn.RunConfig(model_dir=FLAGS.output_dir)
-  hparams = tf.contrib.training.HParams()
-  hparams.parse(FLAGS.hparams)
-
-  estimator = tf.contrib.learn.learn_runner.run(
-    experiment_fn=experiment_fn,
-    run_config=run_config,
-    schedule=FLAGS.schedule,
-    hparams=hparams)
-
-if __name__ == "__main__":
-  tf.app.run()
-```
-The schedule flag decides which member function of the Experiment object gets called. So, if you for example set schedule to "train_and_evaluate", experiment.train_and_evaluate() would be called.
 
 The input function returns two tensors (or dictionaries of tensors) providing the features and labels to be passed to the model:
 ```python
