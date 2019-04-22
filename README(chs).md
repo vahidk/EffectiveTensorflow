@@ -553,7 +553,7 @@ xe = unstable_softmax_cross_entropy(labels, logits)
 print(xe.numpy())  # prints inf
 ```
 
-由于softmax输出结果接近0，log的输出接近无限导致了计算的不稳定，我们扩展softmax做了简化:
+由于softmax输出结果接近0，log的输出接近无限导致了计算的不稳定，我们扩展softmax并简化了计算交叉熵:
 
 ```python
 def softmax_cross_entropy(labels, logits):
